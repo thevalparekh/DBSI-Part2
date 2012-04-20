@@ -47,7 +47,7 @@ Details:
 		Each Integer1Byte etc class should override with appropriate Java Wrapper class hashfunction. This means using Utilities class to
 		convert the byteArray input to the correct type and then create the Wrapper object and call its hashCode function as below.
 		Integer 1 Byte: Byte.hashCode()
-		Integer 2 Byte: Character.hashCode()
+		Integer 2 Byte: Short.hashCode()
 		Integer 4 Byte: Integer.hashCode()
 		Integer 8 Byte: Long.hashCode()
 		Real 4 Byte: Float.hashCode()
