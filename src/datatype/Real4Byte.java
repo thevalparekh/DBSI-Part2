@@ -32,5 +32,11 @@ public class Real4Byte extends DataType {
 		byteArrayOutputStream.write(byteAttr);
 	}
 
+	@Override
+	public int getHashCode(byte[] data) {
+		Float dataAsFloat = new Float(Utilities.toFloat(data));
+		return dataAsFloat.hashCode();
+	}
+
 
 }

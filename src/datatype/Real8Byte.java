@@ -30,4 +30,11 @@ public class Real8Byte extends DataType {
 		byte[] byteAttr = Utilities.toByta(attr);
 		byteArrayOutputStream.write(byteAttr);
 	}
+
+	@Override
+	public int getHashCode(byte[] data) {
+		Double dataAsDouble = new Double(Utilities.toDouble(data));
+		return dataAsDouble.hashCode();
+	}
+	
 }

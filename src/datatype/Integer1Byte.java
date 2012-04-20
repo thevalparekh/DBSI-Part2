@@ -30,4 +30,10 @@ public class Integer1Byte extends DataType {
 		byteArrayOutputStream.write(byteAttr[0]);
 	}
 
+	@Override
+	public int getHashCode(byte[] data) {
+		Byte dataAsByte = new Byte(data[0]);
+		return dataAsByte.hashCode();
+	}
+
 }

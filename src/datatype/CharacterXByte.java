@@ -45,4 +45,9 @@ public class CharacterXByte extends DataType {
 		byteArrayOutputStream.write(byteAttr);
 	}
 	
+	@Override
+	public int getHashCode(byte[] data) {
+		String dataAsString = new String(data);
+		return dataAsString.hashCode();
+	}
 }

@@ -29,4 +29,10 @@ public class Integer4Byte extends DataType{
 		byte[] byteAttr = Utilities.toByta(attr);
 		byteArrayOutputStream.write(byteAttr);
 	}
+
+	@Override
+	public int getHashCode(byte[] data) {
+		Integer dataAsInt = new Integer(Utilities.toInt(data));
+		return dataAsInt.hashCode();
+	}
 }
