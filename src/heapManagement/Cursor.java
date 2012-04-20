@@ -12,7 +12,7 @@ import datatype.*;
 
 public class Cursor {
 	Heap heapFile;
-	Header header;
+	HeapHeader header;
 	long nextRecordOffset;
 	long nextRecord;
 	DataType[] types;

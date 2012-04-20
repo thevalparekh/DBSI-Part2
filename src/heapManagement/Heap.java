@@ -15,7 +15,7 @@ public class Heap {
 	String fileName;
 	RandomAccessFile randomAccessFile;
 	int writeOffset, readOffset;
-	Header head;
+	HeapHeader head;
 	DataType[] datatype;
 	
 
@@ -31,7 +31,7 @@ public class Heap {
 		this.randomAccessFile = new RandomAccessFile(new File(this.fileName), "rw");
 	}
 		
-	public int insertInHeap(String record, Header header, long offset) throws IOException {
+	public int insertInHeap(String record, HeapHeader header, long offset) throws IOException {
 		StringTokenizer stringTok = new StringTokenizer(record, ",");		
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		randomAccessFile.seek(offset);
@@ -71,7 +71,7 @@ public class Heap {
 		return f.exists();
 	}
 
-	public Header getHeapHeader() throws Exception {
+	public HeapHeader getHeapHeader() throws Exception {
 		//retrieve header and advance the pointer
 		/*
 		 * Format of the header:
@@ -84,7 +84,7 @@ public class Heap {
 		randomAccessFile.seek(0);
 		byte[] headSize = new byte[4];
 		randomAccessFile.read(headSize);
-		this.head = new Header();
+		this.head = new HeapHeader();
 		int headIntSize = Utilities.toInt(headSize);
 		byte[] head = new byte[headIntSize];
 		randomAccessFile.seek(0);
@@ -123,7 +123,7 @@ public class Heap {
 			recordSize += size;
 		}
 		
-		this.head = new Header();
+		this.head = new HeapHeader();
 		//head.setEncodedSchema(encodedSchema);
 		head.setSchema(header);
 		head.setNoOfCol(attributes);

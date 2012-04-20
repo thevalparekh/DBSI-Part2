@@ -108,7 +108,7 @@ public class Main {
 			} else { //append to existing file
 				heapFile.openFile();
 				//compare heap header for validation
-				Header heapHeader = heapFile.getHeapHeader();
+				HeapHeader heapHeader = heapFile.getHeapHeader();
 				if(encodedCSVHeader.compareToIgnoreCase(Utilities.formatHeaderSchema(heapHeader.getAttributeList())) == 0){
 					//schema matched, append the records
 					int  count = 0;

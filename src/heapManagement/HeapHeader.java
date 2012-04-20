@@ -2,7 +2,7 @@ package heapManagement;
 
 import java.util.ArrayList;
 
-public class Header {
+public class HeapHeader {
 	private int noOfCol;
 	private int sizeOfRecord;
 	private long totalRecords;
@@ -10,7 +10,7 @@ public class Header {
 	private String schema;
 	private ArrayList<Attribute> attributeList;
 
-	public Header(){
+	public HeapHeader(){
 		this.attributeList = new ArrayList<Attribute>();
 	}
 
