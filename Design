@@ -1,0 +1,94 @@
+Overall Picture:
+	Arguments that cause Heap/Hash mods: -i and -b*
+		For these, first check if heap file provided exists.
+			If yes, then create a HashMap (or ArrayList) of all existing index file names (an index must
+			have both the heapFileName.columnName.lht and heapFileName.columnName.lho to be an index). Existing
+			files can be easily found by creating a File for the directory and doing file.list().
+				For all -b* arguments, if the index exists, wipe the file and overflow file as we have to rebuild.
+				If the index files do not exist, create them and add to HashMap of existing indices
+
+				For all records in the heapFile and for all the indices in the hashmap EXCEPT the ones that are not in the -b*
+				arguments, hash and build the indices. The ones not in the -b* arguments should NOT be rebuild
+
+			If no, by definition, there should be no indices. Create the hashmap of indices, create the files for
+			the indices, and add them to hashmap.
+
+		At this point, the index files should be upto date with the heapfile. Now, if we don't have a -i argument,
+		we are done. If we do, for all indices in our Hashmap, add record to heap file and hash and add to all
+		indices.
+
+	Arguments that cause Heap/Hash search: -s* and -p*
+			Create cursor as usual. Cursor will create HeapCursors if necessary. If any -s* has an = condition and if we
+			have an index on that, in the constructor for Cursor, create a HeapCursor for that column. Do NOT modify the
+			getNextRecord function, leave that for use to just scan the heapFile. Create a new function that does this:
+				For all HeapCursors, pass in the constant value for their appropriate type. HeapCursor will return a list
+				of rids for all records that satisfy that condition. Put this into a Java Set<Long>. For each new list,
+				perform a Original.retainAll(newSet). This performs an intersection. Now, we have a Set of all rids that
+				satisfy ALL the HeapCursor conditions. (Can optimize this by seeing if any Set returned by the HeapCursor
+				is empty, then the entire result is empty). Save this list (Set) of rids to an List, so that we need not
+				perform this operation again for the next record. Using this list, if there any other non equality based
+				selections or equality selections without an index, write a function to get from the Heap file, the record
+				for this rid and verify if the other Conditions are also met. If the condition is not met, remove this item
+				from the list and try to find another one and so on. If list is empty, return null.
+				NOTE: this means that we have to keep a boolean to distinguish from whether the list is
+				empty because we used up all the rids in it or because we haven't done the HeapCursor intersections yet.
+
+				Projections can be done index only if all projections are on HeapCursor columns. In that case, after the
+				intersection, instead of going to the heapfile and finding the record, simply return a record that contains
+				the constant value of these indices in order, separated by commas. Remove the rid from the Set of intersections,
+				so that the next call to get a new record, will be correct.
+
+	Arguments that cause Heap access: no argument just heap file name
+		Do nothing and just use regular cursor's getNextRecord to print all records
+
+
+Details:
+	DataType class should declare a public abstract int getHash(Datatype object) and each derived class will override.
+		Each Integer1Byte etc class should override with appropriate Java Wrapper class hashfunction. This means using Utilities class to
+		convert the byteArray input to the correct type and then create the Wrapper object and call its hashCode function as below.
+		Integer 1 Byte: Byte.hashCode()
+		Integer 2 Byte: Character.hashCode()
+		Integer 4 Byte: Integer.hashCode()
+		Integer 8 Byte: Long.hashCode()
+		Real 4 Byte: Float.hashCode()
+		Real 8 Byte: Double.hashCode()
+		Char X Byte: Convert to String and use String.hashCode()? (I asked on Courseworks. No reply yet)
+
+	Cursor class should take the HashMap created by Main.java for the indices as input. This is so that it can create the
+	appropriate HashCursor classes.
+
+	HashCursor class should take as input the files names for the index and open it and initialize all relevant information such
+	as number of buckets, and what hash function to use etc using the header in the Overflow file. It knows from the index file name, the
+	attribute that it is working on. The getAllRecords function in this class should take as input, the byte representation
+	of the value we are looking for (called from Cursor). Using this and since it knows the type of the value from the header,
+	it will call the appropriate hash function in the list of types, which is also passed in. The returned int value is given to our
+	modding "hash" function that will give the bucket number. We read that entire bucket, parse it and collect all rids that match the
+	constant value passed in and return it as a Set.
+
+	Heap class is modified so that the insertInHeap function returns a rid. This is used outside (in Main) to modify the hash index files.
+	Alternatively, we can compute it ourselves outside but this is probably cleaner. The Heap class should also have a function to return
+	the record given an rid. This will be used by the Cursor to get the rid of the records returned by the HashCursor.
+
+	HashIndex class. This is the analog of the Heap class but for the hash table files. There will be one per index. It will be similar
+	to the Heap class but will deal in buckets. It will also deal with the header of the index file. It has an insertInHashIndex function
+	that takes a rid and the attribute value of the hash and manage all the hashing details. If it needs to modify the hash header upon
+	insert (ex: free list changes), it will do so in memory. Calling the HashIndex.closeFile() will cause the header to written to file.
+
+	HashHeader class. The hash header needs the following parameters:
+		Level: integer representing the level in the hashing procedure.
+		N: integer for intial number of buckets. Thus number of buckets in this level is N* 2^Level. Similarly, the "hashes" to use are
+		   mod N*2^Level and mod N*2^Level+1
+		Ncurr: Integer for the current number of buckets. Between N*2^Level and N*2^Level+1. Can know this by doubling next pointer. Can
+			   either store this or compute from next pointer. ** Your choice. **
+		next: integer for the next bucket to be split. Between 0 and N*2^Level exclusive.
+		bucketSize: integer for size of the bucket. I say fix at 128 bytes.
+		dataType: integer representing the datatype (as implemented in Utilities). From this, we know size of each entry in bucket.
+		freeList: integer for the first bucket of the free list. 0 if no free list.
+
+	Bucket class. Represents a Bucket. Needed for splitting. We use 3 buckets to copy and split as Orestis said.
+				  Probably will change after clarification is made.
+		Has a byte array representing its contents.
+		BucketHeader: All buckets have an additional integer for its next link. This can be in the header.
+					  Needed? Number of entries in bucket.
+		ID:	integer for Bucket id. Essentially what the hash function computes.
+		
