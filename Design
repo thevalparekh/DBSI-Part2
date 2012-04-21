@@ -78,12 +78,19 @@ Details:
 		Level: integer representing the level in the hashing procedure.
 		N: integer for intial number of buckets. Thus number of buckets in this level is N* 2^Level. Similarly, the "hashes" to use are
 		   mod N*2^Level and mod N*2^Level+1
+		   NOT NEEDED AS IT IS ALWAYS GOING TO BE 1
 		Ncurr: Integer for the current number of buckets. Between N*2^Level and N*2^Level+1. Can know this by doubling next pointer. Can
 			   either store this or compute from next pointer. ** Your choice. **
+			AGAIN NOT NEEDED AS IT CAN ALWAYS BE CALCULATED ON THE FLY. WILL DECIDE ON THIS WHILE IMPLEMENTATION
 		next: integer for the next bucket to be split. Between 0 and N*2^Level exclusive.
 		bucketSize: integer for size of the bucket. I say fix at 128 bytes.
+			CONSTANT IN THE  PROGRAM. NOT NEEDED
 		dataType: integer representing the datatype (as implemented in Utilities). From this, we know size of each entry in bucket.
+		    REMAINING SIZE  OF THE INDEX HEADER, IN THE FORM OF c100 , i2...
 		freeList: integer for the first bucket of the free list. 0 if no free list.
+		    
+	indexHeader = { level, next, freelist, indexType } 
+	
 
 	Bucket class. Represents a Bucket. Needed for splitting. We use 3 buckets to copy and split as Orestis said.
 				  Probably will change after clarification is made.
