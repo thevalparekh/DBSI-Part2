@@ -1,12 +1,13 @@
 package heapManagement;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 import datatype.*;
 
 public class Main {
-	
+
 	public static final DataType[] datatype = {
 		new Integer1Byte(), 
 		new Integer2Byte(), 
@@ -19,17 +20,28 @@ public class Main {
 
 	public static void main(String args[]) {
 		if (args.length < 1 ) {
-			System.out.println("Usage: heapfile -i with CSV file in standard input or " +
-			"heapfile -sn op constant | -pn for any n columns in heap file");
+			System.out.println("Usage: heapfile.hf -i with CSV file in standard input, -bn where n is a " +
+					"column to build a linear hash index on that column or heapfile -sn op " + 
+			"constant | -pn for any n columns in heap file");
 			System.exit(1);
 		}
-	
-		String heapFile = args[0];
-		Heap heap = new Heap(heapFile, datatype);
-		
 
-		if (args.length == 2 && args[1].equals("-i")) {
-			insertRecordsFromCSV(heap);
+		String heapFile = args[0];
+
+		if (!heapFile.endsWith(".hf")) {
+			System.out.println("Heapfile must end with a .hf suffix");
+			System.exit(1);
+		}
+
+		if (args.length >= 2 && args[1].equals("-i") || args[1].matches("-b[0-9]*")) {
+			File hFile = new File(heapFile);
+			//Heap heap = new Heap(heapFile, datatype);
+			
+			if (hFile.exists()) {
+				/* Collect indices */
+				ArrayList<String> hashFiles = getHashFiles(heapFile);
+			}
+			//insertRecordsFromCSV(heap);
 			System.out.println("Successfully entered records into heapfile");
 			System.exit(0);
 		}		
@@ -37,12 +49,23 @@ public class Main {
 			String[] conditions = new String[args.length-1];
 			for (int i = 1; i < args.length; i++)
 				conditions[i-1] = args[i];
-			queryRecordsInHeap(heap, conditions);
+			//queryRecordsInHeap(heap, conditions);
 			System.exit(0);
 		}
 	}
-	
-	
+
+
+	private static ArrayList<String> getHashFiles(String heapFile) {
+		ArrayList<String> existingHashFiles = null;
+		String[] children = new File(".").list();
+		for (String child : children) {
+			//if (child.)
+		}
+		return existingHashFiles;
+		
+	}
+
+
 	private static void queryRecordsInHeap(Heap heap, String[] conditions) {
 		if (heap.doesHeapFileExist()) {
 			try {
