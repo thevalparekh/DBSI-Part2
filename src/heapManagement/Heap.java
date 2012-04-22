@@ -118,8 +118,9 @@ public class Heap {
 		HashMap<Integer, HashIndex> newIndices = new HashMap<Integer, HashIndex>();
 
 		for (Integer i : newBuilds) {
-			String iFileName = this.fileName + "." + i.toString() + ".lht";
-			String oFileName = this.fileName + "." + i.toString() + ".lho";
+			String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
+			String iFileName = fileOnly + "." + i.toString() + ".lht";
+			String oFileName = fileOnly + "." + i.toString() + ".lho";
 			Attribute indexOn = attributeList.get(i.intValue()-1);
 			String attributeSchema = new String(indexOn.getType() + new Integer(indexOn.getSize()).toString());
 			HashIndex newIndex = new HashIndex(iFileName, oFileName, attributeSchema, this.datatype);
