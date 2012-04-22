@@ -7,9 +7,12 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import datatype.DataType;
+import datatype.HashIndexRecord;
 
 public class Heap {
 	String fileName;
@@ -17,7 +20,8 @@ public class Heap {
 	int writeOffset, readOffset;
 	HeapHeader head;
 	DataType[] datatype;
-	ArrayList<Integer> hashColumns = null;
+	ArrayList<Integer> hashColumns;
+	HashMap<Integer, HashIndex> indices;
 
 	public Heap(String fileName, DataType[] datatypes)  {
 		this.fileName = fileName;
@@ -25,39 +29,70 @@ public class Heap {
 		this.readOffset = 0;
 		this.datatype = datatypes;
 		this.hashColumns = getHashFiles();
+		this.indices = null;
 	}
-		
-	public int insertInHeap(String record, HeapHeader header, long offset) throws IOException {
-		StringTokenizer stringTok = new StringTokenizer(record, ",");		
+
+	public boolean insertInHeap(String record, long offset) throws IOException {
+		StringTokenizer stringTok = new StringTokenizer(record, ",");
+		ArrayList<Attribute> attributeList = head.getAttributeList();
+
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		randomAccessFile.seek(offset);
-		
-		ArrayList<Attribute> attributeList = header.getAttributeList();
-		try{
-			for(int i = 0; i< attributeList.size(); i++) {
 
+		try {
+			for(int i = 0; i < attributeList.size(); i++) {
 				if(stringTok.hasMoreTokens()) {
+					ByteArrayOutputStream attribute = new ByteArrayOutputStream();
 					String nextTok = stringTok.nextToken();
 					int attributeCode = Utilities.getIntDatatypeCode(attributeList.get(i).getType(),attributeList.get(i).getSize());
-					datatype[attributeCode].write(byteArrayOutputStream, nextTok,attributeList.get(i).getSize() );
+					datatype[attributeCode].write(byteArrayOutputStream, nextTok, attributeList.get(i).getSize());
+					datatype[attributeCode].write(attribute, nextTok, attributeList.get(i).getSize());
+					long rid = offset;
+					Integer column = new Integer(i+1);
+					if (this.indices.containsKey(column)) {
+						HashIndexRecord toInsert = new HashIndexRecord(rid, attribute.toByteArray());
+						indices.get(column).insertInhashIndex(toInsert);
+					}
 				} else {
 					System.out.println("Invalid record..");
 				}
 			}
 			randomAccessFile.write(byteArrayOutputStream.toByteArray());
-		} catch (IOException e){
-			return -1;
+		} catch (IOException e) {
+			return false;
 		}	
-		return 0;
+		return true;
+	}
+
+	public void setIndices() {
+		this.indices = new HashMap<Integer, HashIndex>();
+		ArrayList<Attribute> attributeList = head.getAttributeList();
+
+		for (Integer i : this.hashColumns) {
+			String iFileName = this.fileName + "." + i.toString() + ".lht";
+			String oFileName = this.fileName + "." + i.toString() + ".lho";
+			Attribute indexOn = attributeList.get(i.intValue()-1);
+			String attributeSchema = new String(indexOn.getType() + new Integer(indexOn.getSize()).toString());
+			HashIndex newIndex;
+			try {
+				newIndex = new HashIndex(iFileName, oFileName, attributeSchema, this.datatype);
+				indices.put(i, newIndex);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public void openFile() throws FileNotFoundException {
 		this.randomAccessFile = new RandomAccessFile(new File(this.fileName), "rw");
 	}
-	
+
 	public boolean closeFile(){
 		try {
 			randomAccessFile.close();
+			Set<Integer> keys = this.indices.keySet();
+			for (Integer i : keys)
+				this.indices.get(i).closeHeap();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -70,10 +105,45 @@ public class Heap {
 		return f.exists();
 	}
 
-	public void buildNewIndices(ArrayList<Integer> newBuilds) {
-		
+	public void buildNewIndices(ArrayList<Integer> newBuilds) throws Exception {
+		this.getHeapHeader();
+
+		ArrayList<Attribute> attributeList = this.head.getAttributeList();	
+		HashMap<Integer, HashIndex> newIndices = new HashMap<Integer, HashIndex>();
+
+		for (Integer i : newBuilds) {
+			String iFileName = this.fileName + "." + i.toString() + ".lht";
+			String oFileName = this.fileName + "." + i.toString() + ".lho";
+			Attribute indexOn = attributeList.get(i.intValue()-1);
+			String attributeSchema = new String(indexOn.getType() + new Integer(indexOn.getSize()).toString());
+			HashIndex newIndex = new HashIndex(iFileName, oFileName, attributeSchema, this.datatype);
+			newIndices.put(i, newIndex);
+		}
+
+		long offset = (long) this.head.getHeaderSize();
+		for(int i = 0 ; i < this.head.getTotalRecords(); i++) {
+			randomAccessFile.seek(offset);
+			byte[] buf = new byte[this.head.getSizeOfRecord()];
+			randomAccessFile.read(buf);
+			offset += this.head.getSizeOfRecord();	
+			int size = 0;
+			for(int j = 0; j < attributeList.size(); j++) {
+				byte[] temp = Arrays.copyOfRange(buf, size, size+attributeList.get(j).getSize());
+				size +=  attributeList.get(j).getSize();
+				long rid = offset;
+				Integer column = new Integer(j+1);
+				if (newIndices.containsKey(column)) {
+					HashIndexRecord toInsert = new HashIndexRecord(rid, temp);
+					newIndices.get(column).insertInhashIndex(toInsert);
+				}
+			}
+		}
+
+		Set<Integer> keys = newIndices.keySet();
+		for (Integer i : keys)
+			newIndices.get(i).closeHeap();
 	}
-	
+
 	public HeapHeader getHeapHeader() throws Exception {
 		//retrieve header and advance the pointer
 		/*
@@ -112,7 +182,6 @@ public class Heap {
 		return this.head;
 	}
 
-
 	public void makeHeapHeader(String header, long totalRecords) {
 		//String encodedSchema = new String();
 		StringTokenizer stringTok = new StringTokenizer(header, ",");
@@ -125,7 +194,7 @@ public class Heap {
 			//encodedSchema = encodedSchema + encodeToSchema(nextTok.charAt(0), size);
 			recordSize += size;
 		}
-		
+
 		this.head = new HeapHeader();
 		//head.setEncodedSchema(encodedSchema);
 		head.setSchema(header);
@@ -156,9 +225,16 @@ public class Heap {
 		}
 
 	}
-	
+
 	public ArrayList<Integer> getHashColumns() {
 		return hashColumns;
+	}
+	
+	public byte[] retrieveRecordFromHeap(long rid) throws IOException{
+		randomAccessFile.seek(rid);
+		byte[] buf = new byte[this.head.getSizeOfRecord()];
+		randomAccessFile.read(buf);
+		return buf;
 	}
 
 	private ArrayList<Integer> getHashFiles() {
@@ -174,38 +250,4 @@ public class Heap {
 		}
 		return existingHashFiles;
 	}
-	
-	/* Debugging function */
-	public  void retrieveRecordsFromHeap(DataType[] datatype) {
-		try{
-			int offset = this.head.getHeaderSize();
-			RandomAccessFile randomAccessFile = new  RandomAccessFile(new File(this.fileName), "rw");
-			for(int i = 0 ; i < this.head.getTotalRecords(); i++){
-				randomAccessFile.seek(offset);
-				byte[] buf = new byte[this.head.getSizeOfRecord()];
-				randomAccessFile.read(buf);
-				offset += this.head.getSizeOfRecord();	
-				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-				int size = 0;
-				
-
-				ArrayList<Attribute> attributeList = this.head.getAttributeList();
-				
-				for(int j = 0; j< attributeList.size(); j++){
-					int attributeCode = Utilities.getIntDatatypeCode(attributeList.get(j).getType(),attributeList.get(j).getSize());
-					byte[] temp = Arrays.copyOfRange(buf, size,size+attributeList.get(j).getSize());
-					size +=  attributeList.get(j).getSize();
-					datatype[attributeCode].read(byteArrayOutputStream, temp);
-					if(j < attributeList.size()-1) {
-						byteArrayOutputStream.write(',');
-					}
-				}
-				System.out.println("Record: " + new String(byteArrayOutputStream.toByteArray()));
-			}
-		} catch(IOException e){
-			e.printStackTrace();	
-		}
-	}
-
-
 }

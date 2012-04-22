@@ -6,10 +6,13 @@ public class HashIndexRecord {
 	private byte[] dataValue;
 	
 	public HashIndexRecord() {
-	 
 	}
-
-
+	
+	public HashIndexRecord(long rid, byte[] data) {
+		this.recordId = rid;
+		this.dataValue = data;
+	}
+	
 	public byte[] getDataValue() {
 		return dataValue;
 	}

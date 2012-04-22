@@ -56,7 +56,7 @@ public class Main {
 					}
 				buildNewIndices(heap, newBuilds);
 			}
-			
+
 			/* 
 			 * If no shouldInsert, only need to build. Already did that above.
 			 * Otherwise, insert and update heap and hash at same time. heap.hashColumns contains
@@ -71,7 +71,6 @@ public class Main {
 				conditions[i-1] = args[i];
 			queryRecordsInHeap(heap, conditions);
 		}
-		System.exit(0);
 	}
 
 
@@ -92,6 +91,8 @@ public class Main {
 		} catch (FileNotFoundException e) {
 			System.out.println ("Directory, not a file");
 			System.exit(1);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -118,7 +119,7 @@ public class Main {
 			System.out.println(cursor.getHeader());
 			while ((record = cursor.getNextRecord()) != null)
 				System.out.println(record);
-			System.exit(0);
+			heap.closeFile();
 		} catch (Exception e) {
 			System.out.println("Invalid argument in list of selections and projections");
 			System.exit(1);
@@ -133,6 +134,11 @@ public class Main {
 	private static void insertRecords(Heap heapFile) {
 		ArrayList<String> records = getRecordsFromCSV();
 		System.out.println("Extracted records from the CSV file");
+		/* 
+		 * Set the indices inside Heap to be the full list 
+		 * This creates the HashIndex classes and opens those files
+		 */
+		heapFile.setIndices();
 		try{
 			String originalCSVHeader = records.get(0);
 
@@ -149,7 +155,7 @@ public class Main {
 						heapFile.makeHeapHeader(record,records.size()-1); // make the header and insert it
 						offset = heapFile.head.getHeaderSize();
 					} else {
-						heapFile.insertInHeap(record,heapFile.head,offset);	
+						heapFile.insertInHeap(record, offset);	
 						offset += heapFile.head.getSizeOfRecord();
 					}	
 				}
@@ -168,7 +174,7 @@ public class Main {
 							heapFile.makeHeapHeader(record, totalRecords); 
 
 						} else {
-							heapFile.insertInHeap(record, heapFile. head, offset);
+							heapFile.insertInHeap(record, offset);
 							offset += heapFile.head.getSizeOfRecord();	
 						}
 					}
