@@ -1,6 +1,5 @@
 package heapManagement;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
@@ -42,15 +41,9 @@ public class Main {
 				buildList.add(new Integer(arg.substring(2)));
 		}
 
+		Heap heap = new Heap(heapFile, datatype);
+		
 		if (shouldInsert || !buildList.isEmpty()) {
-			Heap heap = new Heap(heapFile, datatype);
-			
-			/* If buildList is empty, only insertion specified */
-			if (buildList.isEmpty()) {
-				insertRecordsFromCSV(heap);
-				System.exit(0);
-			}
-			
 			ArrayList<Integer> hashFiles = heap.getHashColumns();
 
 			if (heap.doesHeapFileExist()) {
@@ -70,23 +63,17 @@ public class Main {
 			 * all old indices AND newly built indices.
 			 */
 			if (shouldInsert)
-				insertAndHashRecords(heap);
-			System.exit(0);
+				insertRecords(heap);
 		}		
 		else {
-			Heap heap = new Heap(heapFile, datatype);
 			String[] conditions = new String[args.length-1];
 			for (int i = 1; i < args.length; i++)
 				conditions[i-1] = args[i];
 			queryRecordsInHeap(heap, conditions);
-			System.exit(0);
 		}
+		System.exit(0);
 	}
 
-	private static void buildNewIndices(Heap heap, ArrayList<Integer> newBuilds) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	private static ArrayList<String> getRecordsFromCSV() {
 		CSVFileReader cfr = new CSVFileReader(System.in);
@@ -94,20 +81,20 @@ public class Main {
 		return cfr.getStoreValues();
 	}
 
-	private static ArrayList<Integer> getHashFiles(String heapFile) {
-		ArrayList<Integer> existingHashFiles = new ArrayList<Integer>();
-		String[] children = new File(".").list();
-		for (String child : children) {
-			/* Only adding index file. Overflow must exist */
-			if (child.matches(heapFile + ".[0-9]*.lht")) {
-				String indexNumber = child.replace(heapFile + ".", "").replace(".lht", "");
-				Integer index = new Integer(indexNumber);
-				existingHashFiles.add(index);
-			}
+	private static void buildNewIndices(Heap heap, ArrayList<Integer> newBuilds) {
+		if (newBuilds.isEmpty())
+			return;
+		
+		try {
+			heap.openFile();
+			heap.buildNewIndices(newBuilds);
+			heap.closeFile();
+		} catch (FileNotFoundException e) {
+			System.out.println ("Directory, not a file");
+			System.exit(1);
 		}
-		return existingHashFiles;
 	}
-
+	
 	private static void queryRecordsInHeap(Heap heap, String[] conditions) {
 		if (heap.doesHeapFileExist()) {
 			try {
@@ -143,7 +130,7 @@ public class Main {
 	 * This function will extract the records from the CSV file and insert it into the heap file
 	 * If heap file does not exist it will create one, otherwise just append at the end of existing file
 	 */
-	private static void insertRecordsFromCSV(Heap heapFile) {
+	private static void insertRecords(Heap heapFile) {
 		ArrayList<String> records = getRecordsFromCSV();
 		System.out.println("Extracted records from the CSV file");
 		try{
@@ -166,7 +153,7 @@ public class Main {
 						offset += heapFile.head.getSizeOfRecord();
 					}	
 				}
-				heapFile.closeHeap();
+				heapFile.closeFile();
 			} else { //append to existing file
 				heapFile.openFile();
 				//compare heap header for validation
@@ -193,12 +180,8 @@ public class Main {
 				}
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	private static void insertAndHashRecords(Heap heap) {
-		
-	}
 }

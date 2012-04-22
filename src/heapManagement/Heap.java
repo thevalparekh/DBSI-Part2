@@ -26,10 +26,6 @@ public class Heap {
 		this.datatype = datatypes;
 		this.hashColumns = getHashFiles();
 	}
-
-	public void openFile() throws FileNotFoundException {
-		this.randomAccessFile = new RandomAccessFile(new File(this.fileName), "rw");
-	}
 		
 	public int insertInHeap(String record, HeapHeader header, long offset) throws IOException {
 		StringTokenizer stringTok = new StringTokenizer(record, ",");		
@@ -55,15 +51,18 @@ public class Heap {
 		return 0;
 	}
 
-	public int closeHeap(){
+	public void openFile() throws FileNotFoundException {
+		this.randomAccessFile = new RandomAccessFile(new File(this.fileName), "rw");
+	}
+	
+	public boolean closeFile(){
 		try {
 			randomAccessFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			return -1;
+			return false;
 		}
-
-		return 0 ;
+		return true;
 	}
 
 	public boolean doesHeapFileExist() {
@@ -71,6 +70,10 @@ public class Heap {
 		return f.exists();
 	}
 
+	public void buildNewIndices(ArrayList<Integer> newBuilds) {
+		
+	}
+	
 	public HeapHeader getHeapHeader() throws Exception {
 		//retrieve header and advance the pointer
 		/*
@@ -203,4 +206,6 @@ public class Heap {
 			e.printStackTrace();	
 		}
 	}
+
+
 }
