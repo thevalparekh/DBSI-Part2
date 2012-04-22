@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+
 import datatype.*;
 
 public class Cursor {
@@ -46,15 +47,19 @@ public class Cursor {
 		this.schema = heapFile.head.getAttributeList();
 	}
 
-	private ArrayList<Long> getUsingHashIfAny() {
+	private ArrayList<Long> getUsingHashIfAny() throws IOException {
 		boolean gotUsingHash = false;
 		ArrayList<Long> r = new ArrayList<Long>();
 		for (Condition c : this.selectionList) {
 			if (c.isHashCondition) {
 				gotUsingHash = true;
 				HashIndex index = this.indices.get(new Integer(c.column));
-				HashCursor hashCursor = new HashCursor(index);
-				ArrayList<Long> matchingRids = hashCursor.getAllRecords(c);
+				HashCursor hashCursor = new HashCursor(index, types);
+				Attribute attribute = schema.get(c.column-1);
+				byte[] conditionValue = getAsByteArray(attribute.getType(), c, attribute.getSize());
+				int attributeCode = Utilities.getIntDatatypeCode(attribute.getType(), attribute.getSize());
+				
+				ArrayList<Long> matchingRids = hashCursor.getAllRecords(attributeCode, conditionValue);
 				/* Optimization: If returned result is empty. Entire selection is empty */
 				if (matchingRids.isEmpty()) {
 					r.clear();
@@ -117,7 +122,7 @@ public class Cursor {
 					for (Condition condition : selectionList) {
 						if (condition.column != attributeNumber || condition.isHashCondition) 
 							continue;
-						byte[] byteFormat = getAsByteArray(attribute.getType(), condition, size);
+						byte[] byteFormat = getAsByteArray(type, condition, size);
 						int result = types[attributeCode].compare(buff, offset, byteFormat, 0, size);
 
 						if (!satisfyCondition(result, condition.operation)) {
@@ -160,7 +165,7 @@ public class Cursor {
 					for (Condition condition : selectionList) {
 						if (condition.column != attributeNumber) 
 							continue;
-						byte[] byteFormat = getAsByteArray(attribute.getType(), condition, size);
+						byte[] byteFormat = getAsByteArray(type, condition, size);
 						int result = types[attributeCode].compare(buf, offset, 
 								byteFormat, 
 								0, size);

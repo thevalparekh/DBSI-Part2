@@ -20,6 +20,7 @@ public class HashIndex {
 	private RandomAccessFile overFlowRandomAccessFile;
 	private char indexType;
 	private int indexSize;
+
 	private int attributeCode;
 	DataType[] datatype;
 
@@ -184,6 +185,10 @@ public class HashIndex {
 		}
 
 		return 0;
+	}
+	
+	public int getIndexSize() {
+		return indexSize;
 	}
 	
 	public void splitBucketInIndex() throws IOException{
@@ -383,7 +388,6 @@ public class HashIndex {
 		
 		return 0;
 	}
-
 	
 	
 	public int insertInFreeBucket(HashIndexRecord record, Bucket parentBucket) throws IOException{
@@ -430,7 +434,7 @@ public class HashIndex {
 		int currentOffset = 0;
 		int sizeOfRecord = 8 + indexSize;//8 -> RID 
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		while(currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-8 for the OverFlowPointer
+		while(currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer
 			
 			byte[] byteRecord = Arrays.copyOfRange(bucket, currentOffset,currentOffset+sizeOfRecord);
 			int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
