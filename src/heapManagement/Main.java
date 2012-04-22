@@ -73,7 +73,6 @@ public class Main {
 		}
 	}
 
-
 	private static ArrayList<String> getRecordsFromCSV() {
 		CSVFileReader cfr = new CSVFileReader(System.in);
 		cfr.ReadFile();
@@ -101,6 +100,7 @@ public class Main {
 			try {
 				heap.openFile();
 				heap.getHeapHeader();
+				heap.setIndices();
 			} catch (FileNotFoundException e) {
 				System.out.println ("Directory, not a file");
 			} catch (Exception e) {
@@ -135,8 +135,8 @@ public class Main {
 		ArrayList<String> records = getRecordsFromCSV();
 		System.out.println("Extracted records from the CSV file");
 		/* 
-		 * Set the indices inside Heap to be the full list 
-		 * This creates the HashIndex classes and opens those files
+		 * Set the indices inside Heap to be the full list of hashcolumns, if any
+		 * This creates the HashIndex classes and opens those files if they exist
 		 */
 		heapFile.setIndices();
 		try{
