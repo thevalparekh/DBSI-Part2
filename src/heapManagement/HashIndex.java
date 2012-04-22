@@ -12,9 +12,11 @@ import datatype.DataType;
 import datatype.HashIndexRecord;
 
 public class HashIndex {
-	private String fileName;
+	private String indexFileName;
+	private String overFlowFileName;
 	private HashHeader hashHeader;
-	private RandomAccessFile randomAccessFile;
+	private RandomAccessFile indexRandomAccessFile;
+	private RandomAccessFile overFlowRandomAccessFile;
 	private char indexType;
 	private int indexSize;
 	private int attributeCode;
@@ -24,30 +26,38 @@ public class HashIndex {
 	 * HashIndex constructor will also create the default hashHeader
 	 * Input Datatype will be of form - c100 or i2 and so on...
 	 */
-	public HashIndex(String fileName, String datatype, DataType[] datatypes) throws FileNotFoundException {
-		this.fileName = fileName;
+	public HashIndex(String indexFileName, String overFlowFileName, String datatype, DataType[] datatypes) throws IOException {
+		this.indexFileName = indexFileName;
+		this.overFlowFileName = overFlowFileName;
 		hashHeader = new HashHeader(datatype);
 		hashHeader.setHeaderSize(20+datatype.length());
 		this.datatype = datatypes;
 		this.setIndexType(datatype);
 		this.attributeCode = Utilities.getIntDatatypeCode(this.indexType,this.indexSize);
 		this.openIndexFile();
-		this.writeHashHeader(); //write the header to the hashindex file
-		this.makeAndWriteFirstBucket();
+		this.openOverFlowFile();
+		byte[] firstBucket = this.initializeBucket();
+		indexRandomAccessFile.seek(0);
+		indexRandomAccessFile.write(firstBucket);
 	}
 
 	private void setIndexType(String datatype){
 		this.indexType = datatype.charAt(0);
 		this.indexSize = Integer.parseInt(datatype.substring(1));
 	}
+	
+	public void openOverFlowFile() throws FileNotFoundException {
+		this.overFlowRandomAccessFile = new RandomAccessFile(new File(this.overFlowFileName), "rw");
+		this.writeHashHeader(); //write the header to the hashindex file
+	}
 
 	public void openIndexFile() throws FileNotFoundException {
-		this.randomAccessFile = new RandomAccessFile(new File(this.fileName), "rw");
+		this.indexRandomAccessFile = new RandomAccessFile(new File(this.indexFileName), "rw");
 	}
 
 	public int closeHeap(){
 		try {
-			randomAccessFile.close();
+			indexRandomAccessFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return -1;
@@ -57,7 +67,7 @@ public class HashIndex {
 	}
 
 	public boolean doesHeapFileExist() {
-		File f = new File(fileName);
+		File f = new File(indexFileName);
 		return f.exists();
 	}
 
@@ -70,6 +80,7 @@ public class HashIndex {
 	 *   2nd 4 bytes - Level
 	 *   3rd 4 bytes - Next Split Bucket
 	 *   4th 4 bytes - Free List Bucket Head
+	 *   5th 4 bytes - Next Bucket Id
 	 *   5th rest of the bytes - Index Type
 	 */
 	public void writeHashHeader() {
@@ -80,34 +91,30 @@ public class HashIndex {
 			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getLevel()));
 			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getNext()));
 			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getFreeListBucketHead()));
+			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getNextBucketId()));
 			byteArrayOutputStream.write(this.hashHeader.getIndexType().getBytes());
-			randomAccessFile.seek(0);
-			randomAccessFile.write(byteArrayOutputStream.toByteArray());
+			indexRandomAccessFile.seek(0);
+			indexRandomAccessFile.write(byteArrayOutputStream.toByteArray());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
 	}
 
-	public void makeAndWriteFirstBucket() {
-	
-		try { 
+	public byte[] initializeBucket() {
+
 		    byte[] bucket = new byte[Utilities.bucketSize]; 
 		    int overFlowPointerSize = Utilities.overflowPointerSize;
 		    Arrays.fill(bucket, 0, bucket.length-overFlowPointerSize, new Integer(0).byteValue());
 			Arrays.fill(bucket, bucket.length-overFlowPointerSize, bucket.length, new Integer(-1).byteValue());
-			randomAccessFile.seek(Utilities.bucketSize);
-			randomAccessFile.write(bucket);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+			return bucket;		
 	}
 
 	public int insertInhashIndex(HashIndexRecord record) {
 
 		// get the corresponding bucket of the record
 		
-		int hashCode = datatype[attributeCode].getHashCode(record.getDataValue().getBytes());
+		int hashCode = datatype[attributeCode].getHashCode(record.getDataValue());
 		int bucketId = getIndexBucket(hashCode);
 
 		try {
@@ -116,8 +123,8 @@ public class HashIndex {
 			int overflowPointerSize = Utilities.overflowPointerSize;
 			//get bucket for given bucketId from index file
 			byte[] indexBucket = getBucketById(bucketId);
-			
-			boolean recordInsertedInBucket = insertBucketInHeap(indexBucket, record, bucketId);
+			Bucket indexFileBucket = new Bucket(bucketId, false);
+			boolean recordInsertedInBucket = insertBucketInFile(indexBucket, record,indexFileBucket, false); //last parameter is free bucket insert
 			
 		     if(!recordInsertedInBucket){
 				
@@ -129,23 +136,34 @@ public class HashIndex {
 					while(!recordInsertedInBucket && isOverFlowSet == 1 ){
 						int overFlowBucketId = Utilities.toInt(overFlowPointer);
 						byte[] overFlowBucket = getBucketById(overFlowBucketId);
-						recordInsertedInBucket = insertBucketInHeap(indexBucket, record, bucketId);
-						if(!recordInsertedInBucket){
-							
-					    	overFlowPointer = Arrays.copyOfRange(indexBucket, bucketSize-overflowPointerSize, overflowPointerSize);
-							isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
-						}
+						Bucket overFlowFileBucket = new Bucket(overFlowBucketId, true);
+						recordInsertedInBucket = insertBucketInFile(indexBucket, record, overFlowFileBucket, false); //last parameter is free bucket insert
+						
+					    overFlowPointer = Arrays.copyOfRange(indexBucket, bucketSize-overflowPointerSize, overflowPointerSize);
+						isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
 					}
 					
 					/*there can be 2 case to exit the while loop
-					 *  -either there was no 
+					 *  -either insert was done
+					 *  - or no overflow avialable
 					 */
+					if(recordInsertedInBucket){
+						return 1; //record inserted in overflow bucket
+					}
+					
+					//the overflow pointer is not set... so its split
+										
 					
 					
 				} else { 
+					//if there are no overflow bucket
+					
 					//split 
+					
 				}
 				//call for split
+			} else {
+				//record inserted in the index file
 			}
 			
 		} catch (IOException e) {
@@ -155,8 +173,33 @@ public class HashIndex {
 
 		return 0;
 	}
+
+	public int insertInFreeBucket(HashIndexRecord record) throws IOException{
+		
+		int freeBucketHead  = this.hashHeader.getFreeListBucketHead();
+		
+		if(freeBucketHead != -1) {
+			
+			byte[] indexBucket = getBucketById(freeBucketHead);
+			Bucket overFlowFileBucket = new Bucket(freeBucketHead, true);
+			boolean recordInsertedInBucket = insertBucketInFile(indexBucket, record, overFlowFileBucket,true);
+			
+			//for debugging
+			if(!recordInsertedInBucket) {
+				System.out.println( "There is some problem in insertion to free bucket in overflow file");
+			}
+			
+		} else {
+			//create a new bucket
+			initializeBucket();
+		}
+		
+		return 0;
+	}
 	
-	public boolean insertBucketInHeap(byte[]bucket, HashIndexRecord record, int bucketId) throws IOException {
+	
+	
+	public boolean insertBucketInFile(byte[]bucket, HashIndexRecord record, Bucket inputBucket, boolean freeBucket) throws IOException {
 		
 		//check for space in the bucket for the given record
 		boolean recordInsertedInBucket = false;
@@ -172,7 +215,8 @@ public class HashIndex {
 				
 				byte[] longRid = Utilities.toByta(record.getRecordId());
 				byteArrayOutputStream.write(longRid);
-				datatype[attributeCode].write(byteArrayOutputStream, record.getDataValue() , this.indexSize );
+				byteArrayOutputStream.write(record.getDataValue());
+				//datatype[attributeCode].write(byteArrayOutputStream, record.getDataValue() , this.indexSize );
 				// TODO insert overflow pointer
 				recordInsertedInBucket = true;
 			}
@@ -183,12 +227,32 @@ public class HashIndex {
 		}
 		//get the overflow pointer from the bucket
 		byte[] overFlowPointer = Arrays.copyOfRange(bucket, Utilities.bucketSize-Utilities.overflowPointerSize, Utilities.overflowPointerSize);
-		byteArrayOutputStream.write(overFlowPointer);//write overflow pointer to the bufferstream
+		
+		if(freeBucket) {
+			
+			// if its a free bucket make the free list head to next  overflow pointer
+			// then make the  next overflow pointer to -1 
+			this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointer));
+			byte[] overFlowTemp = new byte[Utilities.overflowPointerSize]; 
+			Arrays.fill(overFlowTemp, new Integer(-1).byteValue());
+			byteArrayOutputStream.write(overFlowPointer);
+		} else {
+			byteArrayOutputStream.write(overFlowPointer);//write overflow pointer to the bufferstream
+		}
+		
 		
 		if(recordInsertedInBucket) {
+			
+			if(inputBucket.isOverFlowBucket) {
 				
-			randomAccessFile.seek(Utilities.bucketSize + bucketId*Utilities.bucketSize);
-			randomAccessFile.write(byteArrayOutputStream.toByteArray());
+				indexRandomAccessFile.seek(Utilities.bucketSize + inputBucket.bucketId*Utilities.bucketSize); //header size  + offset
+				indexRandomAccessFile.write(byteArrayOutputStream.toByteArray());
+				
+			} else  {
+				indexRandomAccessFile.seek(inputBucket.bucketId*Utilities.bucketSize);
+				indexRandomAccessFile.write(byteArrayOutputStream.toByteArray());
+			}
+			
 		}
 		
 		return recordInsertedInBucket;
@@ -222,8 +286,8 @@ public class HashIndex {
 		int bucketSize = Utilities.bucketSize;
 		int bufferOffset = bucketSize + bucketId*bucketSize;
 		byte[] bucket = new byte[bucketSize];
-		randomAccessFile.seek(bufferOffset);
-		randomAccessFile.read(bucket);
+		indexRandomAccessFile.seek(bufferOffset);
+		indexRandomAccessFile.read(bucket);
 		return bucket;
 	}
 

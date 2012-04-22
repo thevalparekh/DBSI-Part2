@@ -7,6 +7,7 @@ public class HashHeader {
 	private int freeListBucketHead;
 	private String indexType;
 	private int headerSize;
+	private int nextBucketId;
 	private int initialNumberOfBuckets; //N or S
 	
 	public int getHeaderSize() {
@@ -21,10 +22,19 @@ public class HashHeader {
 		this.level = 0;
 		this.initialNumberOfBuckets = 1;
 		this.next = 0;
-		this.freeListBucketHead = 0;
+		this.freeListBucketHead = -1;
+		this.nextBucketId = 0;
 		this.indexType = datatype;
 	}
 	
+	public int getNextBucketId() {
+		return nextBucketId;
+	}
+
+	public void setNextBucketId(int nextBucketId) {
+		this.nextBucketId = nextBucketId;
+	}
+
 	public int getInitialNumberOfBuckets() {
 		return initialNumberOfBuckets;
 	}
