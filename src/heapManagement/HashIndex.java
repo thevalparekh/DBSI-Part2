@@ -48,7 +48,6 @@ public class HashIndex {
 	
 	public void openOverFlowFile() throws FileNotFoundException {
 		this.overFlowRandomAccessFile = new RandomAccessFile(new File(this.overFlowFileName), "rw");
-		this.writeHashHeader(); //write the header to the hashindex file
 	}
 
 	public void openIndexFile() throws FileNotFoundException {
@@ -57,7 +56,10 @@ public class HashIndex {
 
 	public int closeHeap(){
 		try {
+			//before closing the file, write the header to overflow file
+			this.writeIndexHeader(); 
 			indexRandomAccessFile.close();
+			overFlowRandomAccessFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return -1;
@@ -83,7 +85,7 @@ public class HashIndex {
 	 *   5th 4 bytes - Next Bucket Id
 	 *   5th rest of the bytes - Index Type
 	 */
-	public void writeHashHeader() {
+	public void writeIndexHeader() {
 
 		try{
 			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -93,8 +95,8 @@ public class HashIndex {
 			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getFreeListBucketHead()));
 			byteArrayOutputStream.write(Utilities.toByta(this.hashHeader.getNextBucketId()));
 			byteArrayOutputStream.write(this.hashHeader.getIndexType().getBytes());
-			indexRandomAccessFile.seek(0);
-			indexRandomAccessFile.write(byteArrayOutputStream.toByteArray());
+			overFlowRandomAccessFile.seek(0);
+			overFlowRandomAccessFile.write(byteArrayOutputStream.toByteArray());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -122,9 +124,10 @@ public class HashIndex {
 			int bucketSize = Utilities.bucketSize; 
 			int overflowPointerSize = Utilities.overflowPointerSize;
 			//get bucket for given bucketId from index file
-			byte[] indexBucket = getBucketById(bucketId);
 			Bucket indexFileBucket = new Bucket(bucketId, false);
-			boolean recordInsertedInBucket = insertBucketInFile(indexBucket, record,indexFileBucket, false); //last parameter is free bucket insert
+			byte[] indexBucket = getBucketById(indexFileBucket);
+			
+			boolean recordInsertedInBucket = insertRecordInBucket(indexBucket, record,indexFileBucket, false); //last parameter is free bucket insert
 			
 		     if(!recordInsertedInBucket){
 				
@@ -135,9 +138,9 @@ public class HashIndex {
 					
 					while(!recordInsertedInBucket && isOverFlowSet == 1 ){
 						int overFlowBucketId = Utilities.toInt(overFlowPointer);
-						byte[] overFlowBucket = getBucketById(overFlowBucketId);
 						Bucket overFlowFileBucket = new Bucket(overFlowBucketId, true);
-						recordInsertedInBucket = insertBucketInFile(indexBucket, record, overFlowFileBucket, false); //last parameter is free bucket insert
+						byte[] overFlowBucket = getBucketById(overFlowFileBucket);
+						recordInsertedInBucket = insertRecordInBucket(indexBucket, record, overFlowFileBucket, false); //last parameter is free bucket insert
 						
 					    overFlowPointer = Arrays.copyOfRange(indexBucket, bucketSize-overflowPointerSize, overflowPointerSize);
 						isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
@@ -156,9 +159,17 @@ public class HashIndex {
 					
 					
 				} else { 
-					//if there are no overflow bucket
+					//if there are no overflow bucket, insert in free bucket or new bucket in overflow file
+					insertInFreeBucket(record, indexFileBucket);
 					
-					//split 
+					//split the bucket with id = next
+					//increment the next
+					splitBucketInIndex();
+					
+					
+					
+					
+					
 					
 				}
 				//call for split
@@ -173,16 +184,218 @@ public class HashIndex {
 
 		return 0;
 	}
+	
+	public void splitBucketInIndex() throws IOException{
+		
+		int splitBucketId = this.hashHeader.getNext();
+		this.hashHeader.setNext(splitBucketId + 1);
+		int totalBuckets = this.hashHeader.getTotalBuckets();
+		
+		Bucket indexSplitBucket = new Bucket(splitBucketId, false);
+		Bucket newSplitBucket = new Bucket(splitBucketId, false);
+		Bucket newNthBucket = new Bucket(totalBuckets-1, false);
+		
+		indexSplitBucket.bucketData = getBucketById(indexSplitBucket);
+		newSplitBucket.bucketData = initializeBucket();
+		newNthBucket.bucketData = initializeBucket();
+		
+		int sizeOfRecord = 8 + indexSize;//8 -> RID 
+		int currentOffset = 0; 
+		boolean splitComplete = false;
+		int overFlowPointerOffset = Utilities.bucketSize-Utilities.overflowPointerSize;
+		
+		while(!splitComplete){
+			 
+			
+			while(currentOffset < overFlowPointerOffset){ //-8 for the OverFlowPointer		
+				
+				byte[] byteRecord = Arrays.copyOfRange(indexSplitBucket.bucketData, currentOffset,currentOffset+sizeOfRecord);
+				int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
+			
+				if(isSpace != 0){ //if record exists, rehash
+					
+					ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
+					byte[] temp = Arrays.copyOfRange(byteRecord, 8, 8+this.indexSize);
+					datatype[attributeCode].read(dataByteArray, temp);			
+					int hashCode = datatype[attributeCode].getHashCode(dataByteArray.toByteArray());
+					
+					if ( hashCode == indexSplitBucket.getBucketId()) {
+						
+						//if the newSplitBucket  is full - insert in disk and get next freeBucket in the overflow file
+						if(newSplitBucket.nextOffset == overFlowPointerOffset) {
+							
+							int freeBucketHead  = this.hashHeader.getFreeListBucketHead();
+							
+							//if the newSplitBucket is full, overFlowPointer would be next freeBucketId in the overflow file
+							byte[] newSplitOverFlowPointer = Utilities.toByta(freeBucketHead);				
+							for(int i = overFlowPointerOffset, j = 0 ; i <  Utilities.overflowPointerSize ; i++, j++ ) {
+								newSplitBucket.bucketData[i] = newSplitOverFlowPointer[j];
+							}
+							writeBucketToDisk(newSplitBucket);
+							
+							newSplitBucket = new Bucket(freeBucketHead, true);
+							newSplitBucket.bucketData = getBucketById(newSplitBucket);
+							
+							
+							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newSplitBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+							this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointerFreeBucket));					
+						}
+						
+						
+						for(int i = newSplitBucket.nextOffset, j = 0 ; i < sizeOfRecord ; i++, j++ ) {
+							newSplitBucket.bucketData[i] = byteRecord[j];
+						}
+						
+						newSplitBucket.nextOffset += sizeOfRecord;
+						
+					} else if (hashCode == newNthBucket.getBucketId()) {
+						
+						//if the newNthBucket  is full - insert in disk and get next freeBucket in the overflow file
+						if(newNthBucket.nextOffset == overFlowPointerOffset) {
+							
+							int freeBucketHead  = this.hashHeader.getFreeListBucketHead();
+							
+							//if the newSplitBucket is full, overFlowPointer would be next freeBucketId in the overflow file
+							byte[] newNthBucketOverFlowPointer = Utilities.toByta(freeBucketHead);				
+							for(int i = overFlowPointerOffset, j = 0 ; i <  Utilities.overflowPointerSize ; i++, j++ ) {
+								newNthBucket.bucketData[i] = newNthBucketOverFlowPointer[j];
+							}
+							writeBucketToDisk(newNthBucket);
+							
+							newNthBucket = new Bucket(freeBucketHead, true);
+							newNthBucket.bucketData = getBucketById(newNthBucket);
+							
+							
+							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newNthBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+							this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointerFreeBucket));		
+							
+						}
+						
+						for(int i = newNthBucket.nextOffset, j = 0 ; i < sizeOfRecord ; i++, j++ ) {
+							newNthBucket.bucketData[i] = byteRecord[j];
+						}
+						
+						newNthBucket.nextOffset += sizeOfRecord;
+						
+					} else {
+						System.out.println("Split : The hashcode is not correct ");
+					}
+					
+				}
+				else{ //split complete, write the buckets to disk
+					
+					/*
+					 * first copy the pointers to the new buckets
+					 * For newSPlitBucket : overFlowPointer = currentSplitBucket->overFlowPointer
+					 * For newNthBucket : overFlowPointer = -1
+					 */
+					copyOverFlowPointer(indexSplitBucket, newSplitBucket);
+					Arrays.fill(newNthBucket.bucketData, overFlowPointerOffset, newNthBucket.bucketData.length, new Integer(-1).byteValue());
+					
+					//at this point, the bucket are ready to be written to disk
+					writeBucketToDisk(newSplitBucket);
+					writeBucketToDisk(newNthBucket);
+					splitComplete = true;
+					break;
+					
+				}
+				currentOffset += sizeOfRecord;
+			}
+			
+			//current indexSplitBucket is finished reading. it was the overFlow bucket , add it to the freeSpace list and write  the empty bucket to disk
+			if( indexSplitBucket.isOverFlowBucket ) {
+				
+				// overflow pointer for the newly freed bucket will point to the freeHead pointer
+				// and the freeHead pointer will point to the newly freed bucket
+				int freeBucketHead  = this.hashHeader.getFreeListBucketHead();
+				Bucket freeOverFlowBucket = new Bucket(indexSplitBucket.bucketId, true);
+				freeOverFlowBucket.bucketData = initializeBucket();
+				
+				byte[] freeBucketOverFlowPointer = Utilities.toByta(freeBucketHead);
+				for(int i = overFlowPointerOffset, j = 0 ; i <  Utilities.overflowPointerSize ; i++, j++ ) {
+					freeOverFlowBucket.bucketData[i] = freeBucketOverFlowPointer[j];
+				}
+				writeBucketToDisk(freeOverFlowBucket);
+				
+				this.hashHeader.setFreeListBucketHead(indexSplitBucket.bucketId);	
+			}
+			
+			
+			//get the next overFlow bucket if it exists.
+			//get the  next overflow bucket to be split
+			int nextIndexSplitBucket = indexSplitBucket.getOverflowPointer();
+			
+			if(nextIndexSplitBucket == -1) { //split complete, write the buckets to disk 
+				
+				/*
+				 * first copy the pointers to the new buckets
+				 * For newSPlitBucket : overFlowPointer = currentSplitBucket->overFlowPointer
+				 * For newNthBucket : overFlowPointer = -1
+				 */
+				copyOverFlowPointer(indexSplitBucket, newSplitBucket);
+				Arrays.fill(newNthBucket.bucketData, overFlowPointerOffset, newNthBucket.bucketData.length, new Integer(-1).byteValue());
+				
+				//at this point, the bucket are ready to be written to disk
+				writeBucketToDisk(newSplitBucket);
+				writeBucketToDisk(newNthBucket);
+				splitComplete = true;
+			} else { //get next  overflow bucket
+				
+				indexSplitBucket = new Bucket(nextIndexSplitBucket, false);
+				indexSplitBucket.bucketData = getBucketById(indexSplitBucket);
+			}
+			
+		}
+		
+	}
+	
+	private void copyOverFlowPointer(Bucket indexSplitBucket, Bucket newSplitBucket) {
+		
+		int overFlowPointerOffset = Utilities.bucketSize-Utilities.overflowPointerSize;
+		byte[] newSplitOverFlowPointer = Arrays.copyOfRange(indexSplitBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+		indexSplitBucket.setOverflowPointer(Utilities.toInt(newSplitOverFlowPointer));
+		
+		for(int i = overFlowPointerOffset, j = 0 ; i <  Utilities.overflowPointerSize ; i++, j++ ) {
+			newSplitBucket.bucketData[i] = newSplitOverFlowPointer[j];
+		}
+	}
+	
+	private int writeBucketToDisk(Bucket outputBucket){
+		
+			try {
+				
+				if(outputBucket.isOverFlowBucket) {
+					
+					indexRandomAccessFile.seek(Utilities.bucketSize + outputBucket.bucketId*Utilities.bucketSize); //header size  + offset
+					indexRandomAccessFile.write(outputBucket.bucketData);
+					
+				} else  {
+					indexRandomAccessFile.seek(outputBucket.bucketId*Utilities.bucketSize);
+					indexRandomAccessFile.write(outputBucket.bucketData);
+				}
+	
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
+		
+		return 0;
+	}
 
-	public int insertInFreeBucket(HashIndexRecord record) throws IOException{
+	
+	
+	public int insertInFreeBucket(HashIndexRecord record, Bucket parentBucket) throws IOException{
 		
 		int freeBucketHead  = this.hashHeader.getFreeListBucketHead();
 		
 		if(freeBucketHead != -1) {
 			
-			byte[] indexBucket = getBucketById(freeBucketHead);
 			Bucket overFlowFileBucket = new Bucket(freeBucketHead, true);
-			boolean recordInsertedInBucket = insertBucketInFile(indexBucket, record, overFlowFileBucket,true);
+			byte[] overFlowFreeBucket = getBucketById(overFlowFileBucket);
+			boolean recordInsertedInBucket = insertRecordInBucket(overFlowFreeBucket, record, overFlowFileBucket,true);
+			parentBucket.setOverflowPointer(freeBucketHead);
+			//write parent bucket to  file
 			
 			//for debugging
 			if(!recordInsertedInBucket) {
@@ -191,15 +404,25 @@ public class HashIndex {
 			
 		} else {
 			//create a new bucket
-			initializeBucket();
+			byte[] overFlowBucket = initializeBucket();
+			Bucket overFlowFileBucket = new Bucket(freeBucketHead, true);
+			boolean recordInsertedInBucket = insertRecordInBucket(overFlowBucket, record, overFlowFileBucket,false);
+			int nextBucketInOverFLowFile = this.hashHeader.getNextBucketId();
+			parentBucket.setOverflowPointer(nextBucketInOverFLowFile);
+			this.hashHeader.setNextBucketId(nextBucketInOverFLowFile + 1);
+			//write parent bucket to  file
+			
+			//for debugging
+			if(!recordInsertedInBucket) {
+				System.out.println( "There is some problem in insertion to new bucket in overflow file");
+			}
 		}
 		
 		return 0;
 	}
 	
 	
-	
-	public boolean insertBucketInFile(byte[]bucket, HashIndexRecord record, Bucket inputBucket, boolean freeBucket) throws IOException {
+	public boolean insertRecordInBucket(byte[]bucket, HashIndexRecord record, Bucket inputBucket, boolean freeBucket) throws IOException {
 		
 		//check for space in the bucket for the given record
 		boolean recordInsertedInBucket = false;
@@ -281,13 +504,19 @@ public class HashIndex {
 		return 0;
 	}
 	
-	public byte[] getBucketById(int bucketId) throws IOException {
+	public byte[] getBucketById(Bucket readBucket) throws IOException {
 		
 		int bucketSize = Utilities.bucketSize;
-		int bufferOffset = bucketSize + bucketId*bucketSize;
 		byte[] bucket = new byte[bucketSize];
-		indexRandomAccessFile.seek(bufferOffset);
-		indexRandomAccessFile.read(bucket);
+		if(readBucket.isOverFlowBucket){
+			int bufferOffset = bucketSize + readBucket.getBucketId()*bucketSize;
+			overFlowRandomAccessFile.seek(bufferOffset);
+			overFlowRandomAccessFile.read(bucket);
+		}else{
+			int bufferOffset = readBucket.getBucketId()*bucketSize;
+			indexRandomAccessFile.seek(bufferOffset);
+			indexRandomAccessFile.read(bucket);	
+		}
 		return bucket;
 	}
 

@@ -51,7 +51,14 @@ public class HashHeader {
 		return next;
 	}
 	public void setNext(int next) {
-		this.next = next;
+		
+		if(next == (2^this.level)){
+			this.next = 0;
+			this.level++ ;
+		}else{
+			this.next = next;	
+		}
+		
 	}
 	public int getFreeListBucketHead() {
 		return freeListBucketHead;
@@ -66,5 +73,9 @@ public class HashHeader {
 	}
 	public void setIndexType(String indexType) {
 		this.indexType = indexType;
+	}
+	
+	public int getTotalBuckets(){
+		return this.next + 2^this.level;
 	}
 }

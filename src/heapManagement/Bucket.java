@@ -9,14 +9,17 @@ import datatype.HashIndexRecord;
 public class Bucket {
 	
 	public int bucketId;
-	private long overflowPointer;
+	private int overflowPointer;
 	private ArrayList<HashIndexRecord> recordList;
 	private int bucketSize;
 	public boolean isOverFlowBucket;
+	public int nextOffset; // this is used during a split, which gives the offset to write the split record in this bucket
+	public byte[] bucketData;
 	
 	public Bucket(int _bucketId, boolean isOverFlow) {
 		recordList = new ArrayList<HashIndexRecord>();
 		this.bucketId = _bucketId;
+		this.nextOffset = 0;
 		this.overflowPointer = -1; //by default it will point to the first bucket in the overflow file
 	    this.bucketSize = Utilities.bucketSize;
 	    this.isOverFlowBucket = isOverFlow;
@@ -38,18 +41,6 @@ public class Bucket {
 		this.bucketId = bucketId;
 	}
 
-	public long getOverflowPointer() {
-		return overflowPointer;
-	}
-
-	public void setOverflowPointer(long overflowPointer) {
-		this.overflowPointer = overflowPointer;
-	}
-
-	public ArrayList<HashIndexRecord> getRecordList() {
-		return recordList;
-	}
-
 	public void setRecordList(ArrayList<HashIndexRecord> recordList) {
 		this.recordList = recordList;
 	}
@@ -61,6 +52,16 @@ public class Bucket {
 	public void setBucketSize(int bucketSize) {
 		this.bucketSize = bucketSize;
 	}
+
+	public int getOverflowPointer() {
+		return overflowPointer;
+	}
+
+	public void setOverflowPointer(int overflowPointer) {
+		this.overflowPointer = overflowPointer;
+	}
+
+	
 
 	
 		
