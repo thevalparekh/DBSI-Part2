@@ -200,7 +200,7 @@ public class HashIndex {
 			
 		     if(!recordInsertedInBucket){
 				
-		    	byte[] overFlowPointer = Arrays.copyOfRange(indexBucket, bucketSize-overflowPointerSize, overflowPointerSize);
+		    	byte[] overFlowPointer = Arrays.copyOfRange(indexBucket, overFlowPointerOffset, overFlowPointerOffset+overflowPointerSize);
 				int isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
 				
 				if(isOverFlowSet == 1){
@@ -213,7 +213,7 @@ public class HashIndex {
 						overFlowFileBucket.bucketData = getBucketById(overFlowFileBucket);
 						recordInsertedInBucket = insertRecordInBucket(indexBucket, record, overFlowFileBucket, false); //last parameter is free bucket insert
 						
-					    overFlowPointer = Arrays.copyOfRange(indexBucket, bucketSize-overflowPointerSize, overflowPointerSize);
+					    overFlowPointer = Arrays.copyOfRange(indexBucket, overFlowPointerOffset, overFlowPointerOffset+overflowPointerSize);
 						isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
 					}
 					
