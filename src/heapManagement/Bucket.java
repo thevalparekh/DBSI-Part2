@@ -8,18 +8,28 @@ import datatype.HashIndexRecord;
 
 public class Bucket {
 	
-	private int bucketId;
+	public int bucketId;
 	private long overflowPointer;
 	private ArrayList<HashIndexRecord> recordList;
 	private int bucketSize;
+	public boolean isOverFlowBucket;
 	
-	public Bucket(int _bucketId) {
+	public Bucket(int _bucketId, boolean isOverFlow) {
 		recordList = new ArrayList<HashIndexRecord>();
 		this.bucketId = _bucketId;
 		this.overflowPointer = -1; //by default it will point to the first bucket in the overflow file
 	    this.bucketSize = Utilities.bucketSize;
+	    this.isOverFlowBucket = isOverFlow;
 	}
 	
+	public boolean isOverFlowBucket() {
+		return isOverFlowBucket;
+	}
+
+	public void setOverFlowBucket(boolean isOverFlowBucket) {
+		this.isOverFlowBucket = isOverFlowBucket;
+	}
+
 	public int getBucketId() {
 		return bucketId;
 	}

@@ -3,19 +3,22 @@ package datatype;
 public class HashIndexRecord {
 	
 	private long recordId;
-	private String dataValue;
+	private byte[] dataValue;
 	
 	public HashIndexRecord() {
 	 
 	}
 
-	public String getDataValue() {
+
+	public byte[] getDataValue() {
 		return dataValue;
 	}
 
-	public void setDataValue(String dataValue) {
+
+	public void setDataValue(byte[] dataValue) {
 		this.dataValue = dataValue;
 	}
+
 
 	public long getRecordId() {
 		return recordId;

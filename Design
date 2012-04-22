@@ -89,7 +89,7 @@ Details:
 		    REMAINING SIZE  OF THE INDEX HEADER, IN THE FORM OF c100 , i2...
 		freeList: integer for the first bucket of the free list. 0 if no free list.
 		    
-	indexHeader = { sizeOfHeader, level, next, freelist, indexType } 
+	indexHeader = { sizeOfHeader, level, next, freelisthead, nextBucketId, indexType } 
 	
 
 	Bucket class. Represents a Bucket. Needed for splitting. We use 3 buckets to copy and split as Orestis said.
