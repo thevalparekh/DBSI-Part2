@@ -138,7 +138,6 @@ public class Main {
 		 * Set the indices inside Heap to be the full list of hashcolumns, if any
 		 * This creates the HashIndex classes and opens those files if they exist
 		 */
-		heapFile.setIndices();
 		try{
 			String originalCSVHeader = records.get(0);
 
@@ -153,6 +152,7 @@ public class Main {
 				for(String record : records){
 					if(count++ == 0) {
 						heapFile.makeHeapHeader(record,records.size()-1); // make the header and insert it
+						heapFile.setIndices();
 						offset = heapFile.head.getHeaderSize();
 					} else {
 						heapFile.insertInHeap(record, offset);	
@@ -162,6 +162,7 @@ public class Main {
 				heapFile.closeFile();
 			} else { //append to existing file
 				heapFile.openFile();
+				heapFile.setIndices();
 				//compare heap header for validation
 				HeapHeader heapHeader = heapFile.getHeapHeader();
 				if(encodedCSVHeader.compareToIgnoreCase(Utilities.formatHeaderSchema(heapHeader.getAttributeList())) == 0){
