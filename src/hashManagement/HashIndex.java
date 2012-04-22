@@ -110,7 +110,12 @@ public class HashIndex {
 		    byte[] bucket = new byte[Utilities.bucketSize]; 
 		    int overFlowPointerSize = Utilities.overflowPointerSize;
 		    Arrays.fill(bucket, 0, bucket.length-overFlowPointerSize, new Integer(0).byteValue());
-			Arrays.fill(bucket, bucket.length-overFlowPointerSize, bucket.length, new Integer(-1).byteValue());
+			int overFlowPointer = -1;
+		    byte[] overFlowByte = Utilities.toByta(overFlowPointer);
+		    for ( int j =  bucket.length-overFlowPointerSize, k = 0  ; j < overFlowPointerSize; j++, k++){
+		    	bucket[j] = overFlowByte[k];
+		    }
+		    //Arrays.fill(bucket, bucket.length-overFlowPointerSize, bucket.length, new Integer(-1).byteValue());
 			return bucket;		
 	}
 
@@ -434,8 +439,9 @@ public class HashIndex {
 		int currentOffset = 0;
 		int sizeOfRecord = 8 + indexSize;//8 -> RID 
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		while(currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer
-			
+
+		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){
+			//currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer			
 			byte[] byteRecord = Arrays.copyOfRange(bucket, currentOffset,currentOffset+sizeOfRecord);
 			int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
 		
@@ -488,15 +494,19 @@ public class HashIndex {
 		
 	
 	public int checkOverflowPointerIsSet(byte[] overFlowPointer){
-		
-		for(int z = 0 ; z < overFlowPointer.length; z++){
-			
-			if(overFlowPointer[z] != -1){
-				return 1;
-			}
+	
+		int overFlow = Utilities.toInt(overFlowPointer);
+		if ( overFlow != -1) {
+			return 1;
 		}
-		return 0;
 		
+		return 0;
+//		for(int z = 0 ; z < overFlowPointer.length; z++){
+//			
+//			if(overFlowPointer[z] != -1){
+//				return 1;
+//			}
+//		}	
 	}
 	
 	public int checkByteArrayIsAllZero(byte[] bucket){
