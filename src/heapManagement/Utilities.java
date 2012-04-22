@@ -11,6 +11,7 @@ public class Utilities {
 	
 	public static final int bucketSize = 128; 
 	public static final int overflowPointerSize = 4;
+	public static final int overFlowPointerOffset = bucketSize-overflowPointerSize;
 
 	public static int toInt(byte[] data) {
 		if (data == null || data.length != 4) 
