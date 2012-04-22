@@ -96,6 +96,8 @@ public class Heap {
 	public boolean closeFile(){
 		try {
 			randomAccessFile.close();
+			if (this.indices == null)
+				return true;
 			Set<Integer> keys = this.indices.keySet();
 			for (Integer i : keys)
 				this.indices.get(i).closeHeap();
@@ -247,10 +249,11 @@ public class Heap {
 	private ArrayList<Integer> getHashFiles() {
 		ArrayList<Integer> existingHashFiles = new ArrayList<Integer>();
 		String[] children = new File(".").list();
+		String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
 		for (String child : children) {
 			/* Only adding index file. Overflow must exist */
-			if (child.matches(this.fileName + ".[0-9]*.lht"))  {
-				String indexNumber = child.replace(this.fileName + ".", "").replace(".lht", "");
+			if (child.matches(fileOnly + ".[0-9]*.lht"))  {
+				String indexNumber = child.replace(fileOnly + ".", "").replace(".lht", "");
 				Integer index = new Integer(indexNumber);
 				existingHashFiles.add(index);
 			}
