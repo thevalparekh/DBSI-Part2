@@ -34,13 +34,16 @@ public class HashIndex {
 		this.datatype = datatypes;
 		this.setIndexType(datatype);
 		this.attributeCode = Utilities.getIntDatatypeCode(this.indexType,this.indexSize);
-		this.openIndexFile();
-		this.openOverFlowFile();
+		
 		
 		if(doesHeapFileExist()){
 			//get the header
+			this.openIndexFile();
+			this.openOverFlowFile();
 			getHashHeader();
 		} else {
+			this.openIndexFile();
+			this.openOverFlowFile();
 			hashHeader = new HashHeader(datatype);
 			hashHeader.setHeaderSize(20+datatype.length());
 			byte[] firstBucket = this.initializeBucket();
@@ -273,7 +276,7 @@ public class HashIndex {
 		while(!splitComplete){
 			 
 			
-			while(currentOffset < overFlowPointerOffset){ //-8 for the OverFlowPointer		
+			while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){ //-8 for the OverFlowPointer		
 				
 				byte[] byteRecord = Arrays.copyOfRange(indexSplitBucket.bucketData, currentOffset,currentOffset+sizeOfRecord);
 				int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
@@ -304,7 +307,7 @@ public class HashIndex {
 							newSplitBucket.bucketData = getBucketById(newSplitBucket);
 							
 							
-							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newSplitBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newSplitBucket.bucketData, overFlowPointerOffset, overFlowPointerOffset+Utilities.overflowPointerSize);
 							this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointerFreeBucket));					
 						}
 						
@@ -333,7 +336,7 @@ public class HashIndex {
 							newNthBucket.bucketData = getBucketById(newNthBucket);
 							
 							
-							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newNthBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+							byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(newNthBucket.bucketData, overFlowPointerOffset, overFlowPointerOffset+Utilities.overflowPointerSize);
 							this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointerFreeBucket));		
 							
 						}
@@ -419,7 +422,7 @@ public class HashIndex {
 	private void copyOverFlowPointer(Bucket indexSplitBucket, Bucket newSplitBucket) {
 		
 		
-		byte[] newSplitOverFlowPointer = Arrays.copyOfRange(indexSplitBucket.bucketData, overFlowPointerOffset, Utilities.overflowPointerSize);
+		byte[] newSplitOverFlowPointer = Arrays.copyOfRange(indexSplitBucket.bucketData, overFlowPointerOffset,overFlowPointerOffset+Utilities.overflowPointerSize);
 		indexSplitBucket.setOverflowPointer(Utilities.toInt(newSplitOverFlowPointer));
 		
 		for(int i = overFlowPointerOffset, j = 0 ; i <  Utilities.overflowPointerSize ; i++, j++ ) {
@@ -527,7 +530,7 @@ public class HashIndex {
 			currentOffset += sizeOfRecord;
 		}
 		//get the overflow pointer from the bucket
-		byte[] overFlowPointer = Arrays.copyOfRange(bucket, Utilities.bucketSize-Utilities.overflowPointerSize, Utilities.overflowPointerSize);
+		byte[] overFlowPointer = Arrays.copyOfRange(bucket, overFlowPointerOffset, overFlowPointerOffset+Utilities.overflowPointerSize);
 		
 		if(freeBucket) {
 			
