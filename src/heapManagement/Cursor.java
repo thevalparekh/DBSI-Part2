@@ -1,5 +1,7 @@
 package heapManagement;
 
+import hashManagement.HashCursor;
+import hashManagement.HashIndex;
 import heapManagement.Condition.Operations;
 
 import java.io.ByteArrayOutputStream;
@@ -7,6 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import datatype.*;
 
@@ -19,6 +22,8 @@ public class Cursor {
 	ArrayList<Condition> selectionList;
 	ArrayList<Integer> projectionList;
 	ArrayList<Attribute> schema;
+	HashMap<Integer, HashIndex> indices;
+	ArrayList<Long> results;
 
 	public static final String SELECT = "-s[0-9]*";
 	public static final int COLUMN_POSITION = 2;
@@ -29,11 +34,40 @@ public class Cursor {
 		this.types = types;
 		this.selectionList = new ArrayList<Condition>();
 		this.projectionList = new ArrayList<Integer>();
+		this.indices = file.getIndices();
 		getSelectionsAndProjections(arguments);
+
+		/* Populates results using hashes if any */
+		this.results = getUsingHashIfAny();
+
 		this.nextRecordOffset = (long) heapFile.head.getHeaderSize();
 		this.nextRecord = 1;
 		this.header = heapFile.head;
 		this.schema = heapFile.head.getAttributeList();
+	}
+
+	private ArrayList<Long> getUsingHashIfAny() {
+		boolean gotUsingHash = false;
+		ArrayList<Long> r = new ArrayList<Long>();
+		for (Condition c : this.selectionList) {
+			if (c.isHashCondition) {
+				gotUsingHash = true;
+				HashIndex index = this.indices.get(new Integer(c.column));
+				HashCursor hashCursor = new HashCursor(index);
+				ArrayList<Long> matchingRids = hashCursor.getAllRecords(c);
+				/* Optimization: If returned result is empty. Entire selection is empty */
+				if (matchingRids.isEmpty()) {
+					r.clear();
+					break;
+				}
+				r.retainAll(matchingRids);
+			}
+		}
+		/* Null means we did not have any hash conditions */
+		if (gotUsingHash)
+			return r;
+		else
+			return null;
 	}
 
 	private void getSelectionsAndProjections(String[] args) throws Exception {
@@ -42,7 +76,8 @@ public class Cursor {
 				int column = Integer.parseInt(args[i].substring(COLUMN_POSITION));
 				String operation = args[i+1];
 				String value = args[i+2];
-				this.selectionList.add(new Condition(column, operation, value));
+				boolean haveHash = this.indices.containsKey(new Integer(column)) ? true : false;
+				this.selectionList.add(new Condition(column, operation, value, haveHash));
 				i+=3;				
 			} else if (args[i].matches(PROJECT)) {
 				int column = Integer.parseInt(args[i].substring(COLUMN_POSITION));
@@ -55,49 +90,96 @@ public class Cursor {
 	}
 
 	public String getNextRecord() throws IOException {
+		if (this.results == null)
+			return getNextRecordByHeapScan();
+		else
+			return getNextRecordFromHash();	
+	}
+
+
+	private String getNextRecordFromHash() throws IOException {
+		if (this.results.isEmpty())
+			return null;
+
+		byte[] buff = null;
+		outer:
+			while (!this.results.isEmpty()) {
+				Long top = this.results.remove(0);
+				buff = this.heapFile.retrieveRecordFromHeap(top.longValue());
+
+				int offset = 0;
+				int attributeNumber = 1;
+				for (Attribute attribute: schema) {
+					int size = attribute.getSize();
+					char type = attribute.getType();
+					int attributeCode = Utilities.getIntDatatypeCode(type, size);
+
+					for (Condition condition : selectionList) {
+						if (condition.column != attributeNumber || condition.isHashCondition) 
+							continue;
+						byte[] byteFormat = getAsByteArray(attribute.getType(), condition, size);
+						int result = types[attributeCode].compare(buff, offset, byteFormat, 0, size);
+
+						if (!satisfyCondition(result, condition.operation)) {
+							continue outer;
+						}
+					}
+					offset += size;
+					attributeNumber++;
+				}
+				/* We have a valid record. Return it */
+				if (this.projectionList.isEmpty())
+					return project(buff, null);
+				else 
+					return project(buff, this.projectionList);
+			}
+		return null;
+	}
+
+	private String getNextRecordByHeapScan() throws IOException {
 		RandomAccessFile file = heapFile.randomAccessFile;
 		long numberOfRecords= this.header.getTotalRecords();
 		int sizeOfRecord = this.header.getSizeOfRecord();
 		byte[] buf = null;
-		
-	outer:
-		while(this.nextRecord <= numberOfRecords) {
-			file.seek(nextRecordOffset);
-			buf = new byte[sizeOfRecord];
-			file.read(buf);
-			this.nextRecordOffset += sizeOfRecord;
-			this.nextRecord++;
-			int offset = 0;
-			int attributeNumber = 1;
-			
-			for (Attribute attribute: schema) {
-				int size = attribute.getSize();
-				char type = attribute.getType();
-				int attributeCode = Utilities.getIntDatatypeCode(type, size);
 
-				for (Condition condition : selectionList) {
-					if (condition.column != attributeNumber) 
-						continue;
-					byte[] byteFormat = getAsByteArray(attribute.getType(), condition, size);
-					int result = types[attributeCode].compare(buf, offset, 
-							byteFormat, 
-							0, size);
-					
-					if (!satisfyCondition(result, condition.operation)){
-						continue outer;
+		outer:
+			while(this.nextRecord <= numberOfRecords) {
+				file.seek(nextRecordOffset);
+				buf = new byte[sizeOfRecord];
+				file.read(buf);
+				this.nextRecordOffset += sizeOfRecord;
+				this.nextRecord++;
+				int offset = 0;
+				int attributeNumber = 1;
+
+				for (Attribute attribute: schema) {
+					int size = attribute.getSize();
+					char type = attribute.getType();
+					int attributeCode = Utilities.getIntDatatypeCode(type, size);
+
+					for (Condition condition : selectionList) {
+						if (condition.column != attributeNumber) 
+							continue;
+						byte[] byteFormat = getAsByteArray(attribute.getType(), condition, size);
+						int result = types[attributeCode].compare(buf, offset, 
+								byteFormat, 
+								0, size);
+
+						if (!satisfyCondition(result, condition.operation)){
+							continue outer;
+						}
+
 					}
-						
+					offset += size;
+					attributeNumber++;
 				}
-				offset += size;
-				attributeNumber++;
+				/* 
+				 * If you got here, it means you went through all conditions on 
+				 * all attributes and they all passed. You have a valid record. 
+				 * Break the while loop.
+				 */
+				break;
 			}
-			/* 
-			 * If you got here, it means you went through all conditions on 
-			 * all attributes and they all passed. You have a valid record. 
-			 * Break the while loop.
-			 */
-			break;
-		}
 
 		if (this.nextRecord > numberOfRecords)
 			return null;

@@ -1,10 +1,11 @@
-package heapManagement;
+package hashManagement;
+
+import heapManagement.Utilities;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import datatype.HashIndexRecord;
 
 public class Bucket {
 	

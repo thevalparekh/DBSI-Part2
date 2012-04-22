@@ -1,4 +1,4 @@
-package heapManagement;
+package hashManagement;
 
 public class HashHeader {
 

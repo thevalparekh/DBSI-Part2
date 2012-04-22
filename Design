@@ -18,20 +18,20 @@ Overall Picture:
 		indices.
 
 	Arguments that cause Heap/Hash search: -s* and -p*
-			Create cursor as usual. Cursor will create HeapCursors if necessary. If any -s* has an = condition and if we
-			have an index on that, in the constructor for Cursor, create a HeapCursor for that column. Do NOT modify the
+			Create cursor as usual. Cursor will create HashCursors if necessary. If any -s* has an = condition and if we
+			have an index on that, in the constructor for Cursor, create a HashCursor for that column. Do NOT modify the
 			getNextRecord function, leave that for use to just scan the heapFile. Create a new function that does this:
-				For all HeapCursors, pass in the constant value for their appropriate type. HeapCursor will return a list
+				For all HashCursors, pass in the constant value for their appropriate type. HashCursor will return a list
 				of rids for all records that satisfy that condition. Put this into a Java Set<Long>. For each new list,
 				perform a Original.retainAll(newSet). This performs an intersection. Now, we have a Set of all rids that
-				satisfy ALL the HeapCursor conditions. (Can optimize this by seeing if any Set returned by the HeapCursor
+				satisfy ALL the HashCursor conditions. (Can optimize this by seeing if any Set returned by the HeapCursor
 				is empty, then the entire result is empty). Save this list (Set) of rids to an List, so that we need not
 				perform this operation again for the next record. Using this list, if there any other non equality based
 				selections or equality selections without an index, write a function to get from the Heap file, the record
 				for this rid and verify if the other Conditions are also met. If the condition is not met, remove this item
 				from the list and try to find another one and so on. If list is empty, return null.
 				NOTE: this means that we have to keep a boolean to distinguish from whether the list is
-				empty because we used up all the rids in it or because we haven't done the HeapCursor intersections yet.
+				empty because we used up all the rids in it or because we haven't done the HashCursor intersections yet.
 
 				Projections can be done index only if all projections are on HeapCursor columns. In that case, after the
 				intersection, instead of going to the heapfile and finding the record, simply return a record that contains
@@ -67,7 +67,7 @@ Details:
 
 	Heap class is modified so that the insertInHeap function returns a rid. This is used outside (in Main) to modify the hash index files.
 	Alternatively, we can compute it ourselves outside but this is probably cleaner. The Heap class should also have a function to return
-	the record given an rid. This will be used by the Cursor to get the rid of the records returned by the HashCursor.
+	the record given an rid. This will be used by the Cursor to get the record for the rids returned by the HashCursor.
 
 	HashIndex class. This is the analog of the Heap class but for the hash table files. There will be one per index. It will be similar
 	to the Heap class but will deal in buckets. It will also deal with the header of the index file. It has an insertInHashIndex function

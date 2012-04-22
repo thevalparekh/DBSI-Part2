@@ -1,4 +1,6 @@
-package heapManagement;
+package hashManagement;
+
+import heapManagement.Utilities;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -9,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import datatype.DataType;
-import datatype.HashIndexRecord;
 
 public class HashIndex {
 	private String indexFileName;

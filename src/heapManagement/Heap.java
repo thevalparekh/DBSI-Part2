@@ -1,5 +1,8 @@
 package heapManagement;
 
+import hashManagement.HashIndex;
+import hashManagement.HashIndexRecord;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,7 +15,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import datatype.DataType;
-import datatype.HashIndexRecord;
 
 public class Heap {
 	String fileName;
@@ -64,6 +66,10 @@ public class Heap {
 		return true;
 	}
 
+	public HashMap<Integer, HashIndex> getIndices() {
+		return indices;
+	}
+	
 	public void setIndices() {
 		this.indices = new HashMap<Integer, HashIndex>();
 		ArrayList<Attribute> attributeList = head.getAttributeList();
