@@ -33,38 +33,80 @@ public class Main {
 			System.exit(1);
 		}
 
-		if (args.length >= 2 && args[1].equals("-i") || args[1].matches("-b[0-9]*")) {
-			File hFile = new File(heapFile);
-			//Heap heap = new Heap(heapFile, datatype);
+		boolean shouldInsert = false;
+		ArrayList<Integer> buildList = new ArrayList<Integer>();
+		for (String arg : args) {
+			if (arg.matches("-i"))
+				shouldInsert = true;
+			else if (arg.matches("-b[0-9]*"))
+				buildList.add(new Integer(arg.substring(2)));
+		}
+
+		if (shouldInsert || !buildList.isEmpty()) {
+			Heap heap = new Heap(heapFile, datatype);
 			
-			if (hFile.exists()) {
-				/* Collect indices */
-				ArrayList<String> hashFiles = getHashFiles(heapFile);
+			/* If buildList is empty, only insertion specified */
+			if (buildList.isEmpty()) {
+				insertRecordsFromCSV(heap);
+				System.exit(0);
 			}
-			//insertRecordsFromCSV(heap);
-			System.out.println("Successfully entered records into heapfile");
+			
+			ArrayList<Integer> hashFiles = heap.getHashColumns();
+
+			if (heap.doesHeapFileExist()) {
+				ArrayList<Integer> newBuilds = new ArrayList<Integer>();
+				/* For every index in buildList and not in existing hashFiles, create and update */
+				for (Integer newIndex : buildList)
+					if (!hashFiles.contains(newIndex)) {
+						newBuilds.add(newIndex);
+						hashFiles.add(newIndex);
+					}
+				buildNewIndices(heap, newBuilds);
+			}
+			
+			/* 
+			 * If no shouldInsert, only need to build. Already did that above.
+			 * Otherwise, insert and update heap and hash at same time. heap.hashColumns contains
+			 * all old indices AND newly built indices.
+			 */
+			if (shouldInsert)
+				insertAndHashRecords(heap);
 			System.exit(0);
 		}		
 		else {
+			Heap heap = new Heap(heapFile, datatype);
 			String[] conditions = new String[args.length-1];
 			for (int i = 1; i < args.length; i++)
 				conditions[i-1] = args[i];
-			//queryRecordsInHeap(heap, conditions);
+			queryRecordsInHeap(heap, conditions);
 			System.exit(0);
 		}
 	}
 
-
-	private static ArrayList<String> getHashFiles(String heapFile) {
-		ArrayList<String> existingHashFiles = null;
-		String[] children = new File(".").list();
-		for (String child : children) {
-			//if (child.)
-		}
-		return existingHashFiles;
+	private static void buildNewIndices(Heap heap, ArrayList<Integer> newBuilds) {
+		// TODO Auto-generated method stub
 		
 	}
 
+	private static ArrayList<String> getRecordsFromCSV() {
+		CSVFileReader cfr = new CSVFileReader(System.in);
+		cfr.ReadFile();
+		return cfr.getStoreValues();
+	}
+
+	private static ArrayList<Integer> getHashFiles(String heapFile) {
+		ArrayList<Integer> existingHashFiles = new ArrayList<Integer>();
+		String[] children = new File(".").list();
+		for (String child : children) {
+			/* Only adding index file. Overflow must exist */
+			if (child.matches(heapFile + ".[0-9]*.lht")) {
+				String indexNumber = child.replace(heapFile + ".", "").replace(".lht", "");
+				Integer index = new Integer(indexNumber);
+				existingHashFiles.add(index);
+			}
+		}
+		return existingHashFiles;
+	}
 
 	private static void queryRecordsInHeap(Heap heap, String[] conditions) {
 		if (heap.doesHeapFileExist()) {
@@ -96,16 +138,13 @@ public class Main {
 		}
 
 	}
-
+	
 	/*
 	 * This function will extract the records from the CSV file and insert it into the heap file
 	 * If heap file does not exist it will create one, otherwise just append at the end of existing file
 	 */
 	private static void insertRecordsFromCSV(Heap heapFile) {
-
-		CSVFileReader cfr = new CSVFileReader(System.in);
-		cfr.ReadFile();
-		ArrayList<String> records = cfr.getStoreValues();
+		ArrayList<String> records = getRecordsFromCSV();
 		System.out.println("Extracted records from the CSV file");
 		try{
 			String originalCSVHeader = records.get(0);
@@ -150,12 +189,16 @@ public class Main {
 				else {
 					//throw exception - or display error message
 					System.out.println("The CSV schema does not match with heap header schema");
-					System.exit(0);
+					System.exit(1);
 				}
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private static void insertAndHashRecords(Heap heap) {
+		
 	}
 }

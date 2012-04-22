@@ -17,14 +17,14 @@ public class Heap {
 	int writeOffset, readOffset;
 	HeapHeader head;
 	DataType[] datatype;
-	
+	ArrayList<Integer> hashColumns = null;
 
 	public Heap(String fileName, DataType[] datatypes)  {
 		this.fileName = fileName;
 		this.writeOffset = 0;
 		this.readOffset = 0;
 		this.datatype = datatypes;
-		
+		this.hashColumns = getHashFiles();
 	}
 
 	public void openFile() throws FileNotFoundException {
@@ -153,6 +153,25 @@ public class Heap {
 		}
 
 	}
+	
+	public ArrayList<Integer> getHashColumns() {
+		return hashColumns;
+	}
+
+	private ArrayList<Integer> getHashFiles() {
+		ArrayList<Integer> existingHashFiles = new ArrayList<Integer>();
+		String[] children = new File(".").list();
+		for (String child : children) {
+			/* Only adding index file. Overflow must exist */
+			if (child.matches(this.fileName + ".[0-9]*.lht"))  {
+				String indexNumber = child.replace(this.fileName + ".", "").replace(".lht", "");
+				Integer index = new Integer(indexNumber);
+				existingHashFiles.add(index);
+			}
+		}
+		return existingHashFiles;
+	}
+	
 	/* Debugging function */
 	public  void retrieveRecordsFromHeap(DataType[] datatype) {
 		try{
