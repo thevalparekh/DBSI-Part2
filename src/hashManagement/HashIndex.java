@@ -284,7 +284,7 @@ public class HashIndex {
 			ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
 			datatype[attributeCode].read(dataByteArray, record.getDataValue());
 			String indexData = new  String(dataByteArray.toByteArray());
-			System.out.println("Record :" + indexData + "bucketId" + bucketId);
+			//System.out.println("Record :" + indexData + "bucketId" + bucketId);
 
 			int bucketSize = Utilities.bucketSize; 
 			int overflowPointerSize = Utilities.overflowPointerSize;
@@ -385,7 +385,7 @@ public class HashIndex {
 					//datatype[attributeCode].read(dataByteArray, temp);			
 					int hashCode = datatype[attributeCode].getHashCode(temp);
 					int bucketId = getIndexBucket(hashCode);
-					System.out.println("Bucket Id : " + bucketId  + "HashCode" + hashCode);
+					//System.out.println("Bucket Id : " + bucketId  + "  HashCode" + hashCode);
 
 					if ( bucketId == newSplitBucket.getBucketId()) {
 
