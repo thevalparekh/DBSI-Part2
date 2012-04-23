@@ -52,13 +52,14 @@ public class HashHeader {
 	}
 	public void setNext(int next) {
 		
+		
 		if(next == (((int)Math.pow(2, level)))){
 			this.next = 0;
 			this.level++ ;
 		}else{
 			this.next = next;	
 		}
-		
+		//System.out.println("--Level " + level + "--Next " + next + "  --freehead" + freeListBucketHead + "  nextBucket" + nextBucketId);
 	}
 	public int getFreeListBucketHead() {
 		return freeListBucketHead;

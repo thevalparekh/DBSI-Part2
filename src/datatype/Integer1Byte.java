@@ -33,7 +33,7 @@ public class Integer1Byte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		Byte dataAsByte = new Byte(data[0]);
-		return dataAsByte.hashCode();
+		return Math.abs(dataAsByte.hashCode());
 	}
 
 }

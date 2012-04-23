@@ -175,6 +175,7 @@ public class Main {
 				heapFile.closeFile();
 			} else { //append to existing file
 				heapFile.openFile();
+				heapFile.getHeapHeader(); //dhaval fix 
 				heapFile.setIndices();
 				//compare heap header for validation
 				HeapHeader heapHeader = heapFile.getHeapHeader();

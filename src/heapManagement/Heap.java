@@ -72,8 +72,8 @@ public class Heap {
 	
 	public void setIndices() {
 		this.indices = new HashMap<Integer, HashIndex>();
-		ArrayList<Attribute> attributeList = head.getAttributeList();
-
+		ArrayList<Attribute> attributeList = this.head.getAttributeList();
+		
 		for (Integer i : this.hashColumns) {
 			String iFileName = this.fileName + "." + i.toString() + ".lht";
 			String oFileName = this.fileName + "." + i.toString() + ".lho";

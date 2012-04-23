@@ -280,11 +280,15 @@ public class HashIndex {
 			
 			
 			//print index and overflow file
-			printIndexFile();
-			ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
-			datatype[attributeCode].read(dataByteArray, record.getDataValue());
-			String indexData = new  String(dataByteArray.toByteArray());
-			//System.out.println("Record :" + indexData + "bucketId" + bucketId);
+//			printIndexFile();
+//			ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
+//			datatype[attributeCode].read(dataByteArray, record.getDataValue());
+//			String indexData = new  String(dataByteArray.toByteArray());
+//			System.out.println("Record :" + indexData + "bucketId" + bucketId);
+//			
+//			if(indexData.equalsIgnoreCase("joseph")){
+//				System.out.println("I am the problem");
+//			}
 
 			int bucketSize = Utilities.bucketSize; 
 			int overflowPointerSize = Utilities.overflowPointerSize;
@@ -366,6 +370,9 @@ public class HashIndex {
 		newSplitBucket.bucketData = initializeBucket();
 		newNthBucket.bucketData = initializeBucket();
 
+		int newSplitBucketId = newSplitBucket.getBucketId();
+		int newNthBucketId = newNthBucket.getBucketId();
+		
 		int sizeOfRecord = 8 + indexSize;//8 -> RID 
 		int currentOffset = 0; 
 		boolean splitComplete = false;
@@ -385,9 +392,13 @@ public class HashIndex {
 					//datatype[attributeCode].read(dataByteArray, temp);			
 					int hashCode = datatype[attributeCode].getHashCode(temp);
 					int bucketId = getIndexBucket(hashCode);
+					
+					ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
+					byte[] temp1 = Arrays.copyOfRange(byteRecord, 8, 8+this.indexSize);
+					datatype[attributeCode].read(dataByteArray, temp1);			
 					//System.out.println("Bucket Id : " + bucketId  + "  HashCode" + hashCode);
 
-					if ( bucketId == newSplitBucket.getBucketId()) {
+					if ( bucketId == newSplitBucketId) {
 
 						//if the newSplitBucket  is full - insert in disk and get next freeBucket in the overflow file
 						if(newSplitBucket.nextOffset + sizeOfRecord >= overFlowPointerOffset) {
@@ -426,13 +437,14 @@ public class HashIndex {
 
 						newSplitBucket.nextOffset += sizeOfRecord;
 
-					} else if (bucketId == newNthBucket.getBucketId()) {
+					} else if (bucketId == newNthBucketId) {
 
 						//if the newNthBucket  is full - insert in disk and get next freeBucket in the overflow file
 						if(newNthBucket.nextOffset + sizeOfRecord >= overFlowPointerOffset) {
 							
 							int nextBucketId =  this.hashHeader.getFreeListBucketHead();
-							if(nextBucketId == -1) {
+							int  freeBucketId = this.hashHeader.getFreeListBucketHead();
+							if(freeBucketId == -1) {
 								
 								nextBucketId = this.hashHeader.getNextBucketId();
 								this.hashHeader.setNextBucketId(nextBucketId + 1);
@@ -445,7 +457,7 @@ public class HashIndex {
 							}
 							writeBucketToDisk(newNthBucket);
 							
-							if(nextBucketId == -1) {
+							if(freeBucketId == -1) {
 								newNthBucket = new Bucket(nextBucketId, true);
 								newNthBucket.bucketData = initializeBucket();
 							} else {
@@ -464,6 +476,8 @@ public class HashIndex {
 						newNthBucket.nextOffset += sizeOfRecord;
 
 					} else {
+						System.out.println("Leval " + hashHeader.getLevel() + "Next " + hashHeader.getNext());
+						System.out.println("Data" + new String (dataByteArray.toByteArray()) + "  Bucket Id : " + bucketId  + "  HashCode" + hashCode);
 						System.out.println("Split : The hashcode is not correct ");
 					}
 
