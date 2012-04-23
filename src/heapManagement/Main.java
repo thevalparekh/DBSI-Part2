@@ -1,9 +1,18 @@
 package heapManagement;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
-import datatype.*;
+import datatype.CharacterXByte;
+import datatype.DataType;
+import datatype.Integer1Byte;
+import datatype.Integer2Byte;
+import datatype.Integer4Byte;
+import datatype.Integer8Byte;
+import datatype.Real4Byte;
+import datatype.Real8Byte;
 
 public class Main {
 
@@ -72,8 +81,11 @@ public class Main {
 				conditions[i-1] = args[i];
 			queryRecordsInHeap(heap, conditions);
 		}
+		
+		//print the index file and the overflow file
+		
 	}
-
+	
 	private static ArrayList<String> getRecordsFromCSV() {
 		CSVFileReader cfr = new CSVFileReader(System.in);
 		cfr.ReadFile();

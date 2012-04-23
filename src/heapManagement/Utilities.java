@@ -9,7 +9,7 @@ import java.util.StringTokenizer;
 
 public class Utilities {
 	
-	public static final int bucketSize = 128; 
+	public static final int bucketSize = 28; 
 	public static final int overflowPointerSize = 4;
 	public static final int overFlowPointerOffset = bucketSize-overflowPointerSize;
 

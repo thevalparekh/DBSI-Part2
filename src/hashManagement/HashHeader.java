@@ -52,7 +52,7 @@ public class HashHeader {
 	}
 	public void setNext(int next) {
 		
-		if(next == (2^this.level)){
+		if(next == (((int)Math.pow(2, level)))){
 			this.next = 0;
 			this.level++ ;
 		}else{
@@ -76,6 +76,6 @@ public class HashHeader {
 	}
 	
 	public int getTotalBuckets(){
-		return this.next + 2^this.level;
+		return this.next + (int)Math.pow(2, level);
 	}
 }
