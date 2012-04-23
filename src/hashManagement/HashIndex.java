@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
 
+import javax.rmi.CORBA.Util;
+
 import datatype.DataType;
 
 public class HashIndex {
@@ -121,8 +123,10 @@ public class HashIndex {
 	public int closeHeap(){
 		try {
 			//print the index file and overflow file
-			printIndexFile();
-
+			if(Utilities.debugFlag){
+				printIndexFile();
+			}
+			
 			//before closing the file, write the header to overflow file
 			this.writeIndexHeader(); 
 			indexRandomAccessFile.close();
@@ -208,7 +212,7 @@ public class HashIndex {
 					}
 				}
 				
-				System.out.println("Bucket id:" + i + " " + bucketOutput.toString());
+				System.out.println("Bucket id:" + i + "  " + bucketOutput.toString());
 				
 			}
 
@@ -476,9 +480,12 @@ public class HashIndex {
 						newNthBucket.nextOffset += sizeOfRecord;
 
 					} else {
-						System.out.println("Leval " + hashHeader.getLevel() + "Next " + hashHeader.getNext());
-						System.out.println("Data" + new String (dataByteArray.toByteArray()) + "  Bucket Id : " + bucketId  + "  HashCode" + hashCode);
-						System.out.println("Split : The hashcode is not correct ");
+						if(Utilities.debugFlag) {
+							System.out.println("Leval " + hashHeader.getLevel() + "Next " + hashHeader.getNext());
+							System.out.println("Data" + new String (dataByteArray.toByteArray()) + "  Bucket Id : " + bucketId  + "  HashCode" + hashCode);
+							System.out.println("Split : The hashcode is not correct ");
+						}
+						
 					}
 
 				}
@@ -587,12 +594,6 @@ public class HashIndex {
 	public int getOverflowPointer(Bucket bucket){
 		
 		byte[] overFlowPointerFreeBucket = Arrays.copyOfRange(bucket.bucketData, overFlowPointerOffset, overFlowPointerOffset+Utilities.overflowPointerSize);
-//		byte[] newOverFlowPointer = new byte[Utilities.overflowPointerSize];
-//		for(int i = overFlowPointerOffset, j = 0 ; i < overFlowPointerOffset+ Utilities.overflowPointerSize ; i++, j++ ) {
-//			newOverFlowPointer[j] = overFlowPointerFreeBucket[i];
-//		}
-		
-		//int overFlowPointer = Utilities.toInt(newOverFlowPointer);
 		int overFlowPointer = Utilities.toInt(overFlowPointerFreeBucket);
 		return overFlowPointer;
 	}
@@ -621,7 +622,7 @@ public class HashIndex {
 			
 
 			//for debugging
-			if(!recordInsertedInBucket) {
+			if(!recordInsertedInBucket && Utilities.debugFlag) {
 				System.out.println( "There is some problem in insertion to free bucket in overflow file");
 			}
 
@@ -642,7 +643,7 @@ public class HashIndex {
 			writeBucketToDisk(parentBucket);
 
 			//for debugging
-			if(!recordInsertedInBucket) {
+			if(!recordInsertedInBucket && Utilities.debugFlag) {
 				System.out.println( "There is some problem in insertion to new bucket in overflow file");
 			}
 		}
@@ -691,18 +692,10 @@ public class HashIndex {
 			// if its a free bucket make the free list head to next  overflow pointer
 			// then make the  next overflow pointer to -1 
 			this.hashHeader.setFreeListBucketHead(Utilities.toInt(overFlowPointer));
-			
-			//byte[] overFlowTemp = new byte[Utilities.overflowPointerSize];
-			
 			int tempOverFlowPointer = -1;
 			byte[] overFlowTemp = Utilities.toByta(tempOverFlowPointer);
-			
-//			for ( int j =  overFlowPointerOffset, k = 0  ; j < bucket.length; j++, k++){
-//				overFlowTemp[j] = overFlowByte[k];
-//			}
-			//Arrays.fill(overFlowTemp, new Integer(-1).byteValue());
-			
 			byteArrayOutputStream.write(overFlowTemp);
+			
 		} else {
 			byteArrayOutputStream.write(overFlowPointer);//write overflow pointer to the bufferstream
 		}
@@ -735,12 +728,6 @@ public class HashIndex {
 		}
 
 		return 0;
-		//		for(int z = 0 ; z < overFlowPointer.length; z++){
-		//			
-		//			if(overFlowPointer[z] != -1){
-		//				return 1;
-		//			}
-		//		}	
 	}
 
 	public int checkByteArrayIsAllZero(byte[] bucket){
