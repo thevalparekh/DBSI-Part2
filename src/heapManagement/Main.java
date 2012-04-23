@@ -1,8 +1,6 @@
 package heapManagement;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
 import datatype.CharacterXByte;
@@ -62,7 +60,9 @@ public class Main {
 					if (!hashFiles.contains(newIndex)) {
 						newBuilds.add(newIndex);
 						hashFiles.add(newIndex);
-						System.out.println(newIndex);
+					} else {
+						System.out.println("Index already exists for column " + newIndex + 
+										   ". Skipping rebuilding. It will be updated though.");
 					}
 				buildNewIndices(heap, newBuilds);
 			}
