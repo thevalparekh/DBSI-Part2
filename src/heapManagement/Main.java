@@ -81,9 +81,7 @@ public class Main {
 				conditions[i-1] = args[i];
 			queryRecordsInHeap(heap, conditions);
 		}
-		
-		//print the index file and the overflow file
-		
+			
 	}
 	
 	private static ArrayList<String> getRecordsFromCSV() {

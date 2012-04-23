@@ -199,9 +199,9 @@ public class HashIndex {
 
 						//get the overflow pointer from the bucket
 						overFlowPointer = Arrays.copyOfRange(overFlowFileBucket.bucketData, overFlowPointerOffset, overFlowPointerOffset+Utilities.overflowPointerSize);
-						overflowId = Utilities.toInt(overFlowPointer);
+						overFlowBucketId = Utilities.toInt(overFlowPointer);
 
-						bucketOutput.append("O-");
+						bucketOutput.append("OF is ");
 						bucketOutput.append(overflowId);
 						isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
 					}
