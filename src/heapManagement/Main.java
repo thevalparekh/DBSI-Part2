@@ -75,7 +75,7 @@ public class Main {
 			if (shouldInsert)
 				insertRecords(heap);
 			
-			System.out.println("Success");
+			System.out.println("Done.");
 		}		
 		else {
 			String[] conditions = new String[args.length-1];
