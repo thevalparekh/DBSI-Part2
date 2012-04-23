@@ -202,7 +202,7 @@ public class HashIndex {
 						overFlowBucketId = Utilities.toInt(overFlowPointer);
 						
 						bucketOutput.append("OF is ");
-						bucketOutput.append(overflowId);
+						bucketOutput.append(overFlowBucketId);
 						bucketOutput.append("\t");
 						isOverFlowSet = checkOverflowPointerIsSet(overFlowPointer);
 					}
