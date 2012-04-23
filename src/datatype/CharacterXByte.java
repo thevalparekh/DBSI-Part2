@@ -48,6 +48,6 @@ public class CharacterXByte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		String dataAsString = new String(data);
-		return dataAsString.hashCode();
+		return Math.abs(dataAsString.hashCode());
 	}
 }

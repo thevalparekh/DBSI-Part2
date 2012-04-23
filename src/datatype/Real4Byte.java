@@ -35,7 +35,7 @@ public class Real4Byte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		Float dataAsFloat = new Float(Utilities.toFloat(data));
-		return dataAsFloat.hashCode();
+		return Math.abs(dataAsFloat.hashCode());
 	}
 
 

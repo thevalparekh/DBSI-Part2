@@ -36,7 +36,7 @@ public class Integer2Byte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		Short dataAsShort = new Short(Utilities.toShort(data));
-		return dataAsShort.hashCode();
+		return Math.abs(dataAsShort.hashCode());
 	}
 
 }

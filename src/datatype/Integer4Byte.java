@@ -33,6 +33,6 @@ public class Integer4Byte extends DataType{
 	@Override
 	public int getHashCode(byte[] data) {
 		Integer dataAsInt = new Integer(Utilities.toInt(data));
-		return dataAsInt.hashCode();
+		return Math.abs(dataAsInt.hashCode());
 	}
 }

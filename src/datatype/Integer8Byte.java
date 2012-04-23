@@ -36,7 +36,7 @@ public class Integer8Byte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		Long dataAsLong = new Long(Utilities.toLong(data));
-		return dataAsLong.hashCode();
+		return Math.abs(dataAsLong.hashCode());
 	}
 
 	

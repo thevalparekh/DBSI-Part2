@@ -34,7 +34,7 @@ public class Real8Byte extends DataType {
 	@Override
 	public int getHashCode(byte[] data) {
 		Double dataAsDouble = new Double(Utilities.toDouble(data));
-		return dataAsDouble.hashCode();
+		return Math.abs(dataAsDouble.hashCode());
 	}
 	
 }
