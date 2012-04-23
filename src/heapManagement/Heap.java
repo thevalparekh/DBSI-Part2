@@ -40,7 +40,6 @@ public class Heap {
 
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		randomAccessFile.seek(offset);
-
 		try {
 			for(int i = 0; i < attributeList.size(); i++) {
 				if(stringTok.hasMoreTokens()) {
@@ -135,7 +134,6 @@ public class Heap {
 			randomAccessFile.seek(offset);
 			byte[] buf = new byte[this.head.getSizeOfRecord()];
 			randomAccessFile.read(buf);
-			offset += this.head.getSizeOfRecord();	
 			int size = 0;
 			for(int j = 0; j < attributeList.size(); j++) {
 				byte[] temp = Arrays.copyOfRange(buf, size, size+attributeList.get(j).getSize());
@@ -147,6 +145,7 @@ public class Heap {
 					newIndices.get(column).insertInhashIndex(toInsert);
 				}
 			}
+			offset += this.head.getSizeOfRecord();	
 		}
 
 		Set<Integer> keys = newIndices.keySet();
@@ -260,13 +259,6 @@ public class Heap {
 
 	public ArrayList<Integer> getHashColumns() {
 		return hashColumns;
-	}
-	
-	public byte[] retrieveRecordFromHeap(long rid) throws IOException{
-		randomAccessFile.seek(rid);
-		byte[] buf = new byte[this.head.getSizeOfRecord()];
-		randomAccessFile.read(buf);
-		return buf;
 	}
 
 	private ArrayList<Integer> getHashFiles() {

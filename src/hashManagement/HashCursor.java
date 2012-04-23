@@ -28,7 +28,7 @@ public class HashCursor {
 
 		while (true) {
 			byte[] data = index.getBucketById(primaryBucket);
-			byte[] overFlowPointer = Arrays.copyOfRange(data, bucketSize-overflowPointerSize, overflowPointerSize);
+			byte[] overFlowPointer = Arrays.copyOfRange(data, bucketSize-overflowPointerSize, bucketSize);
 			matchingRecords.addAll(addEntries(type, data, conditionValue));		
 			boolean haveOverflow = index.checkOverflowPointerIsSet(overFlowPointer) == 1 ? true : false;
 			if (haveOverflow)
@@ -36,7 +36,6 @@ public class HashCursor {
 			else
 				break;
 		}
-		
 		return matchingRecords;
 	}
 
@@ -46,15 +45,15 @@ public class HashCursor {
 		int sizeOfRecord = 8 + index.getIndexSize();
 		
 		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= bucket.length) { 
-			
+
 			byte[] byteRecord = Arrays.copyOfRange(bucket, currentOffset, currentOffset+sizeOfRecord);
 			int isSpace = index.checkByteArrayIsAllZero(byteRecord);
 		
-			if(isSpace == 0) {
+			if(isSpace == -1) {
+				byte[] longRid = Arrays.copyOfRange(byteRecord, 0, 8);
 				byte[] data = Arrays.copyOfRange(byteRecord, 8, byteRecord.length);
 				int result = types[type].compare(data, 0, conditionValue, 0, index.getIndexSize());
 				if (result == 0) {
-					byte[] longRid = Arrays.copyOfRange(byteRecord, 0, 8);
 					long rid = Utilities.toLong(longRid);
 					rids.add(new Long(rid));
 				}

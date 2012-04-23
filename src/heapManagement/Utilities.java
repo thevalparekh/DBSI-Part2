@@ -12,7 +12,12 @@ public class Utilities {
 	public static final int bucketSize = 104; 
 	public static final int overflowPointerSize = 4;
 	public static final int overFlowPointerOffset = bucketSize-overflowPointerSize;
-	public static boolean debugFlag = true;
+	/****************************************************************************
+	 * CHANGE THIS TO true to see bucket outputs when closeHeap is called (can
+	 * happen twice for same hashfile if creating it while inserting. First result
+	 * is empty. The second is after inserting
+	 */
+	public static boolean debugFlag = false;
 
 	public static int toInt(byte[] data) {
 		if (data == null || data.length != 4) 

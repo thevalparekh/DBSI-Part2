@@ -761,7 +761,7 @@ public class HashIndex {
 		int bucketId  = 0;
 		int s = (int)Math.pow(2, hashHeader.getLevel());//2^hashHeader.getLevel();
 		int totalbuckets = hashHeader.getNext() + s;
-		bucketId = Math.abs(hashCode) % (2*s);
+		bucketId = hashCode % (2*s);
 		if (bucketId > totalbuckets - 1) {
 			bucketId = bucketId - s;
 		}

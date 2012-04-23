@@ -38,13 +38,13 @@ public class Cursor {
 		this.indices = file.getIndices();
 		getSelectionsAndProjections(arguments);
 
-		/* Populates results using hashes if any */
-		this.results = getUsingHashIfAny();
-
 		this.nextRecordOffset = (long) heapFile.head.getHeaderSize();
 		this.nextRecord = 1;
 		this.header = heapFile.head;
 		this.schema = heapFile.head.getAttributeList();
+		
+		/* Populates results using hashes if any */
+		this.results = getUsingHashIfAny();
 	}
 
 	private ArrayList<Long> getUsingHashIfAny() throws IOException {
@@ -65,6 +65,9 @@ public class Cursor {
 					r.clear();
 					break;
 				}
+				/* If r was empty, nothing was put in yet. Set first results to r */
+				if (r.isEmpty())
+					r = matchingRids;
 				r.retainAll(matchingRids);
 			}
 		}
@@ -105,13 +108,16 @@ public class Cursor {
 	private String getNextRecordFromHash() throws IOException {
 		if (this.results.isEmpty())
 			return null;
-
+		
+		RandomAccessFile randomAccessFile = heapFile.randomAccessFile;
 		byte[] buff = null;
 		outer:
 			while (!this.results.isEmpty()) {
 				Long top = this.results.remove(0);
-				buff = this.heapFile.retrieveRecordFromHeap(top.longValue());
-
+				randomAccessFile.seek(top);
+				buff = new byte[this.header.getSizeOfRecord()];
+				randomAccessFile.read(buff);
+				
 				int offset = 0;
 				int attributeNumber = 1;
 				for (Attribute attribute: schema) {
