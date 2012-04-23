@@ -152,7 +152,11 @@ public class Cursor {
 		long numberOfRecords= this.header.getTotalRecords();
 		int sizeOfRecord = this.header.getSizeOfRecord();
 		byte[] buf = null;
+		boolean haveRecord = false;
 
+		if (this.nextRecord > numberOfRecords)
+			return null;
+		
 		outer:
 			while(this.nextRecord <= numberOfRecords) {
 				file.seek(nextRecordOffset);
@@ -189,10 +193,11 @@ public class Cursor {
 				 * all attributes and they all passed. You have a valid record. 
 				 * Break the while loop.
 				 */
+				haveRecord = true;
 				break;
 			}
-
-		if (this.nextRecord > numberOfRecords)
+		
+		if (!haveRecord)
 			return null;
 
 		if (this.projectionList.isEmpty())

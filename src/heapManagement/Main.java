@@ -70,12 +70,13 @@ public class Main {
 			/* 
 			 * If no shouldInsert, only need to build. Already did that above.
 			 * Otherwise, insert and update heap and hash at same time. heap.hashColumns contains
-			 * all old indices AND newly built indices.
+			 * all old indices AND newly built indices. However, not concurrent builds. insertRecords
+			 * will handle that
 			 */
 			if (shouldInsert)
 				insertRecords(heap, buildList);
-
-			System.out.println("Done.");
+			
+			System.out.println("Completed valid operations. (Ex. Did not do -b* if heapfile did not exist)");
 		}		
 		else {
 			String[] conditions = new String[args.length-1];
