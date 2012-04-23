@@ -62,7 +62,7 @@ public class Main {
 						hashFiles.add(newIndex);
 					} else {
 						System.out.println("Index already exists for column " + newIndex + 
-										   ". Skipping rebuilding. It will be updated though.");
+										   ". Skipping rebuilding. It will be updated if inserting.");
 					}
 				buildNewIndices(heap, newBuilds);
 			}
@@ -74,6 +74,8 @@ public class Main {
 			 */
 			if (shouldInsert)
 				insertRecords(heap);
+			
+			System.out.println("Success");
 		}		
 		else {
 			String[] conditions = new String[args.length-1];
