@@ -49,7 +49,7 @@ public class Main {
 		}
 
 		Heap heap = new Heap(heapFile, datatype);
-		
+
 		if (shouldInsert || !buildList.isEmpty()) {
 			ArrayList<Integer> hashFiles = heap.getHashColumns();
 
@@ -62,7 +62,7 @@ public class Main {
 						hashFiles.add(newIndex);
 					} else {
 						System.out.println("Index already exists for column " + newIndex + 
-										   ". Skipping rebuilding. It will be updated if inserting.");
+						". Skipping rebuilding. It will be updated if inserting.");
 					}
 				buildNewIndices(heap, newBuilds);
 			}
@@ -73,8 +73,8 @@ public class Main {
 			 * all old indices AND newly built indices.
 			 */
 			if (shouldInsert)
-				insertRecords(heap);
-			
+				insertRecords(heap, buildList);
+
 			System.out.println("Done.");
 		}		
 		else {
@@ -83,9 +83,23 @@ public class Main {
 				conditions[i-1] = args[i];
 			queryRecordsInHeap(heap, conditions);
 		}
-			
+
 	}
-	
+
+	private static void createNewIndices(Heap heap, ArrayList<Integer> buildList) {
+		if (buildList.isEmpty())
+			return;
+		else
+			try {
+				ArrayList<Integer> hashFiles = heap.getHashColumns();
+				for (Integer newIndex : buildList)
+					hashFiles.add(newIndex);
+				heap.createNewIndices(buildList);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+	}
+
 	private static ArrayList<String> getRecordsFromCSV() {
 		CSVFileReader cfr = new CSVFileReader(System.in);
 		cfr.ReadFile();
@@ -95,7 +109,7 @@ public class Main {
 	private static void buildNewIndices(Heap heap, ArrayList<Integer> newBuilds) {
 		if (newBuilds.isEmpty())
 			return;
-		
+
 		try {
 			heap.openFile();
 			heap.buildNewIndices(newBuilds);
@@ -107,7 +121,7 @@ public class Main {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private static void queryRecordsInHeap(Heap heap, String[] conditions) {
 		if (heap.doesHeapFileExist()) {
 			try {
@@ -139,12 +153,12 @@ public class Main {
 		}
 
 	}
-	
+
 	/*
 	 * This function will extract the records from the CSV file and insert it into the heap file
 	 * If heap file does not exist it will create one, otherwise just append at the end of existing file
 	 */
-	private static void insertRecords(Heap heapFile) {
+	private static void insertRecords(Heap heapFile, ArrayList<Integer> buildList) {
 		ArrayList<String> records = getRecordsFromCSV();
 		System.out.println("Extracted records from the CSV file");
 		/* 
@@ -165,6 +179,7 @@ public class Main {
 				for(String record : records){
 					if(count++ == 0) {
 						heapFile.makeHeapHeader(record,records.size()-1); // make the header and insert it
+						createNewIndices(heapFile, buildList);
 						heapFile.setIndices();
 						offset = heapFile.head.getHeaderSize();
 					} else {
@@ -199,10 +214,11 @@ public class Main {
 					System.out.println("The CSV schema does not match with heap header schema");
 					System.exit(1);
 				}
+				heapFile.closeFile();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 }

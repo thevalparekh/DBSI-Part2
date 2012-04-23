@@ -2,23 +2,16 @@ package hashManagement;
 
 import heapManagement.Utilities;
 
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-
-
 public class Bucket {
 	
 	public int bucketId;
 	private int overflowPointer;
-	private ArrayList<HashIndexRecord> recordList;
 	private int bucketSize;
 	public boolean isOverFlowBucket;
 	public int nextOffset; // this is used during a split, which gives the offset to write the split record in this bucket
 	public byte[] bucketData;
 	
 	public Bucket(int _bucketId, boolean isOverFlow) {
-		recordList = new ArrayList<HashIndexRecord>();
 		this.bucketId = _bucketId;
 		this.nextOffset = 0;
 		this.overflowPointer = -1; //by default it will point to the first bucket in the overflow file
@@ -40,10 +33,6 @@ public class Bucket {
 
 	public void setBucketId(int bucketId) {
 		this.bucketId = bucketId;
-	}
-
-	public void setRecordList(ArrayList<HashIndexRecord> recordList) {
-		this.recordList = recordList;
 	}
 
 	public int getBucketSize() {

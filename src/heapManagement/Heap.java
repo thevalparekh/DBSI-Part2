@@ -73,10 +73,11 @@ public class Heap {
 	public void setIndices() {
 		this.indices = new HashMap<Integer, HashIndex>();
 		ArrayList<Attribute> attributeList = this.head.getAttributeList();
+		String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
 		
 		for (Integer i : this.hashColumns) {
-			String iFileName = this.fileName + "." + i.toString() + ".lht";
-			String oFileName = this.fileName + "." + i.toString() + ".lho";
+			String iFileName = fileOnly + "." + i.toString() + ".lht";
+			String oFileName = fileOnly + "." + i.toString() + ".lho";
 			Attribute indexOn = attributeList.get(i.intValue()-1);
 			String attributeSchema = new String(indexOn.getType() + new Integer(indexOn.getSize()).toString());
 			HashIndex newIndex;
@@ -118,9 +119,9 @@ public class Heap {
 
 		ArrayList<Attribute> attributeList = this.head.getAttributeList();	
 		HashMap<Integer, HashIndex> newIndices = new HashMap<Integer, HashIndex>();
+		String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
 
 		for (Integer i : newBuilds) {
-			String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
 			String iFileName = fileOnly + "." + i.toString() + ".lht";
 			String oFileName = fileOnly + "." + i.toString() + ".lho";
 			Attribute indexOn = attributeList.get(i.intValue()-1);
@@ -153,6 +154,28 @@ public class Heap {
 			newIndices.get(i).closeHeap();
 	}
 
+	public void createNewIndices(ArrayList<Integer> newBuilds) throws Exception {
+		this.getHeapHeader();
+
+		ArrayList<Attribute> attributeList = this.head.getAttributeList();	
+		HashMap<Integer, HashIndex> newIndices = new HashMap<Integer, HashIndex>();
+		String fileOnly = this.fileName.substring(0, this.fileName.length()-3);
+
+		for (Integer i : newBuilds) {
+			String iFileName = fileOnly + "." + i.toString() + ".lht";
+			String oFileName = fileOnly + "." + i.toString() + ".lho";
+			Attribute indexOn = attributeList.get(i.intValue()-1);
+			String attributeSchema = new String(indexOn.getType() + new Integer(indexOn.getSize()).toString());
+			HashIndex newIndex = new HashIndex(iFileName, oFileName, attributeSchema, this.datatype);
+			newIndices.put(i, newIndex);
+		}
+
+		Set<Integer> keys = newIndices.keySet();
+		for (Integer i : keys)
+			newIndices.get(i).closeHeap();
+	}
+
+	
 	public HeapHeader getHeapHeader() throws Exception {
 		//retrieve header and advance the pointer
 		/*
