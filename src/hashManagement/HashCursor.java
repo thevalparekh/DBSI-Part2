@@ -45,7 +45,7 @@ public class HashCursor {
 		int currentOffset = 0;
 		int sizeOfRecord = 8 + index.getIndexSize();
 		
-		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < bucket.length) { 
+		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= bucket.length) { 
 			
 			byte[] byteRecord = Arrays.copyOfRange(bucket, currentOffset, currentOffset+sizeOfRecord);
 			int isSpace = index.checkByteArrayIsAllZero(byteRecord);
