@@ -148,7 +148,7 @@ public class HashIndex {
 				
 				StringBuffer bucketOutput = new StringBuffer();
 				
-				while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){
+				while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= Utilities.bucketSize){
 					//currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer			
 					byte[] byteRecord = Arrays.copyOfRange(current.bucketData, currentOffset+8,currentOffset+sizeOfRecord);
 
@@ -183,7 +183,7 @@ public class HashIndex {
 						sizeOfRecord = 8 + indexSize;//8 -> RID 
 						
 
-						while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){
+						while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= Utilities.bucketSize){
 							//currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer			
 							byte[] byteRecord = Arrays.copyOfRange(overFlowFileBucket.bucketData, currentOffset+8,currentOffset+sizeOfRecord);
 
@@ -284,7 +284,7 @@ public class HashIndex {
 			ByteArrayOutputStream dataByteArray = new ByteArrayOutputStream();
 			datatype[attributeCode].read(dataByteArray, record.getDataValue());
 			String indexData = new  String(dataByteArray.toByteArray());
-			System.out.println("Record :" + indexData);
+			System.out.println("Record :" + indexData + "bucketId" + bucketId);
 
 			int bucketSize = Utilities.bucketSize; 
 			int overflowPointerSize = Utilities.overflowPointerSize;
@@ -373,7 +373,7 @@ public class HashIndex {
 		while(!splitComplete){
 
 			currentOffset = 0; 
-			while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){ //-8 for the OverFlowPointer		
+			while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= Utilities.bucketSize){ //-8 for the OverFlowPointer		
 
 				byte[] byteRecord = Arrays.copyOfRange(indexSplitBucket.bucketData, currentOffset,currentOffset+sizeOfRecord);
 				int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
@@ -385,6 +385,7 @@ public class HashIndex {
 					//datatype[attributeCode].read(dataByteArray, temp);			
 					int hashCode = datatype[attributeCode].getHashCode(temp);
 					int bucketId = getIndexBucket(hashCode);
+					System.out.println("Bucket Id : " + bucketId  + "HashCode" + hashCode);
 
 					if ( bucketId == newSplitBucket.getBucketId()) {
 
@@ -644,7 +645,7 @@ public class HashIndex {
 		int sizeOfRecord = 8 + indexSize;//8 -> RID 
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize < Utilities.bucketSize){
+		while(currentOffset + sizeOfRecord + Utilities.overflowPointerSize <= Utilities.bucketSize){
 			//currentOffset < Utilities.bucketSize-Utilities.overflowPointerSize){ //-4 for the OverFlowPointer			
 			byte[] byteRecord = Arrays.copyOfRange(bucket, currentOffset,currentOffset+sizeOfRecord);
 			int isSpace = checkByteArrayIsAllZero(byteRecord); //drawback - if overflow pointer is 0.
@@ -759,7 +760,7 @@ public class HashIndex {
 		int bucketId  = 0;
 		int s = (int)Math.pow(2, hashHeader.getLevel());//2^hashHeader.getLevel();
 		int totalbuckets = hashHeader.getNext() + s;
-		bucketId = hashCode % (2*s);
+		bucketId = Math.abs(hashCode) % (2*s);
 		if (bucketId > totalbuckets - 1) {
 			bucketId = bucketId - s;
 		}
